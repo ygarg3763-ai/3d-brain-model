@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CogniAdapt Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #080810;
+  --bg2: #0d0d16;
+  --surface: #12121c;
+  --surface2: #181824;
+  --surface3: #1e1e2e;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.1);
+  --text: #e2e2f0;
+  --text2: #a0a0c0;
+  --muted: #5a5a78;
+  --green: #5af0a0;
+  --yellow: #f0d060;
+  --orange: #f09050;
+  --red: #f06060;
+  --blue: #60a0f0;
+  --purple: #a060f0;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── SIDEBAR ── */
+.layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-logo {
+  padding: 0 20px 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #5af0a0, #00c070);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.logo-name {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.logo-tagline {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.nav-section {
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+
+.nav-section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 8px;
+  margin-bottom: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-decoration: none;
+  margin-bottom: 1px;
+}
+
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(90,240,160,0.1); color: var(--green); }
+
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── MAIN CONTENT ── */
+.main {
+  padding: 32px 36px;
+  overflow-y: auto;
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+  margin-bottom: 28px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.page-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 6px;
+}
+
+.page-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.page-sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+
+.time-filter {
+  display: flex;
+  gap: 4px;
+}
+
+.tf-btn {
+  padding: 6px 12px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tf-btn:hover, .tf-btn.active {
+  background: var(--surface2);
+  color: var(--text);
+  border-color: var(--border2);
+}
+
+/* ── STAT CARDS ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  opacity: 0.06;
+  background: var(--accent-color, #5af0a0);
+  transform: translate(15px, -20px);
+}
+
+.stat-card-icon {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.stat-card-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--accent-color, var(--text));
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-card-label {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.stat-card-delta {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  margin-top: 6px;
+}
+
+/* ── SECTION CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 16px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.card-sub {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  margin-top: 2px;
+}
+
+.card-body {
+  padding: 0 20px 20px;
+}
+
+/* ── CHARTS ── */
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+/* ── LIVE SCORE BAR ── */
+.live-score-display {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.live-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 48px;
+  font-weight: 500;
+  line-height: 1;
+  transition: color 0.5s;
+  color: var(--green);
+  min-width: 70px;
+}
+
+.live-right {
+  flex: 1;
+}
+
+.live-bar-track {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.live-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: var(--green);
+  transition: width 1s cubic-bezier(0.16,1,0.3,1), background 0.5s;
+  width: 0%;
+}
+
+.live-level {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  letter-spacing: 0.05em;
+}
+
+.live-desc {
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 3px;
+}
+
+/* ── SIGNAL LIVE BARS ── */
+.signal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.signal-card {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+}
+
+.signal-card-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.signal-card-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.signal-mini-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.signal-mini-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--green);
+  transition: width 0.8s, background 0.5s;
+}
+
+/* ── HEATMAP ── */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+}
+
+.heat-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--surface3);
+  transition: background 0.3s;
+  cursor: pointer;
+}
+
+.heat-label-row {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.heat-hour-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── HISTORY TABLE ── */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.history-table td {
+  padding: 10px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+}
+
+.history-table tr:last-child td { border-bottom: none; }
+.history-table tr:hover td { background: var(--surface2); }
+
+.level-tag {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+/* ── SETTINGS ── */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.setting-group {
+  background: var(--surface2);
+  border-radius: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+}
+
+.setting-group-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 14px;
+  color: var(--text);
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.setting-row:last-child { border-bottom: none; }
+
+.setting-info { flex: 1; }
+.setting-name { font-size: 12px; font-weight: 500; }
+.setting-desc { font-size: 10px; color: var(--muted); margin-top: 2px; font-family: 'DM Mono', monospace; }
+
+.toggle {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  flex-shrink: 0;
+}
+.toggle input { opacity: 0; width:0; height:0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: 22px; cursor: pointer; transition: 0.3s;
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%; left: 2px; top: 2px;
+  background: var(--muted); transition: 0.3s;
+}
+.toggle input:checked + .toggle-slider { background: rgba(90,240,160,0.15); border-color: rgba(90,240,160,0.3); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(16px); background: var(--green); }
+
+input[type=range] {
+  width: 100%; height: 3px;
+  background: var(--surface3); border-radius: 3px;
+  outline: none; -webkit-appearance: none; cursor: pointer; margin-top: 8px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--green); cursor: pointer;
+}
+
+/* ── TABS ── */
+.tab-bar {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  margin-bottom: 0;
+}
+
+.tab {
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+
+.tab:hover { color: var(--text2); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+.tab-content { display: none; padding: 20px; }
+.tab-content.active { display: block; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+/* ── FADE IN ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeUp 0.5s ease both; }
+.fade-in:nth-child(2) { animation-delay: 0.06s; }
+.fade-in:nth-child(3) { animation-delay: 0.12s; }
+.fade-in:nth-child(4) { animation-delay: 0.18s; }
+
+/* ── LEGEND ── */
+.legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text2);
+}
+.legend-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+
+/* ── PAGE SECTIONS ── */
+.section { display: none; }
+.section.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">◈</div>
+      <div class="logo-name">CogniAdapt</div>
+      <div class="logo-tagline">Cognitive Fatigue Adapter</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Monitor</div>
+      <a class="nav-item active" data-section="overview" href="#">
+        <span class="nav-icon">◉</span> Live Overview
+      </a>
+      <a class="nav-item" data-section="analytics" href="#">
+        <span class="nav-icon">◈</span> Analytics
+      </a>
+      <a class="nav-item" data-section="heatmap" href="#">
+        <span class="nav-icon">▦</span> Heatmap
+      </a>
+    </div>
+
+    <div class="nav-section" style="margin-top:8px">
+      <div class="nav-section-label">Data</div>
+      <a class="nav-item" data-section="history" href="#">
+        <span class="nav-icon">☰</span> Session History
+      </a>
+      <a class="nav-item" data-section="insights" href="#">
+        <span class="nav-icon">◎</span> Insights
+      </a>
+    </div>
+
+    <div class="nav-section" style="margin-top:8px">
+      <div class="nav-section-label">Configure</div>
+      <a class="nav-item" data-section="settings" href="#">
+        <span class="nav-icon">⚙</span> Settings
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span>Monitoring active</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══ OVERVIEW ══ -->
+    <div class="section active" id="sec-overview">
+      <div class="page-header fade-in">
+        <div>
+          <div class="page-eyebrow">Live Overview</div>
+          <div class="page-title">Cognitive Load Monitor</div>
+          <div class="page-sub">Real-time fatigue inference from passive behavioral signals</div>
+        </div>
+      </div>
+
+      <!-- Live Score -->
+      <div class="live-score-display fade-in">
+        <div class="live-num" id="liveScoreNum">–</div>
+        <div class="live-right">
+          <div class="live-bar-track"><div class="live-bar-fill" id="liveBarFill"></div></div>
+          <div class="live-level" id="liveLevelLabel">CALIBRATING</div>
+          <div class="live-desc" id="liveDesc">Waiting for signal data from active tab...</div>
+        </div>
+      </div>
+
+      <!-- Signal Cards -->
+      <div class="signal-grid fade-in">
+        <div class="signal-card">
+          <div class="signal-card-label">Typing Rhythm</div>
+          <div class="signal-card-val" id="sigTypingVal">–</div>
+          <div class="signal-mini-bar"><div class="signal-mini-fill" id="sigTypingBar" style="width:0%"></div></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">Inter-keystroke variance</div>
+        </div>
+        <div class="signal-card">
+          <div class="signal-card-label">Cursor Jitter</div>
+          <div class="signal-card-val" id="sigJitterVal">–</div>
+          <div class="signal-mini-bar"><div class="signal-mini-fill" id="sigJitterBar" style="width:0%"></div></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">Path deviation index</div>
+        </div>
+        <div class="signal-card">
+          <div class="signal-card-label">Scroll Entropy</div>
+          <div class="signal-card-val" id="sigScrollVal">–</div>
+          <div class="signal-mini-bar"><div class="signal-mini-fill" id="sigScrollBar" style="width:0%"></div></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">Directional reversal rate</div>
+        </div>
+      </div>
+
+      <!-- Real-time chart -->
+      <div class="card fade-in">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Live Fatigue Score</div>
+            <div class="card-sub">Last 60 data points — updates every 2s</div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#5af0a0"></div>Normal</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f0d060"></div>Mild</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f09050"></div>High</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f06060"></div>Critical</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="liveChart" height="120"></canvas>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stat-row fade-in">
+        <div class="stat-card" style="--accent-color:#5af0a0">
+          <div class="stat-card-icon">⏱</div>
+          <div class="stat-card-val" id="sc1">–</div>
+          <div class="stat-card-label">Session Duration</div>
+        </div>
+        <div class="stat-card" style="--accent-color:#60a0f0">
+          <div class="stat-card-icon">⚡</div>
+          <div class="stat-card-val" id="sc2">–</div>
+          <div class="stat-card-label">Adaptations Today</div>
+        </div>
+        <div class="stat-card" style="--accent-color:#f0d060">
+          <div class="stat-card-icon">◉</div>
+          <div class="stat-card-val" id="sc3">–</div>
+          <div class="stat-card-label">Avg Score Today</div>
+        </div>
+        <div class="stat-card" style="--accent-color:#a060f0">
+          <div class="stat-card-icon">▦</div>
+          <div class="stat-card-val" id="sc4">–</div>
+          <div class="stat-card-label">Sites Monitored</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ANALYTICS ══ -->
+    <div class="section" id="sec-analytics">
+      <div class="page-header">
+        <div>
+          <div class="page-eyebrow">Analytics</div>
+          <div class="page-title">Fatigue Patterns</div>
+          <div class="page-sub">Historical cognitive load across sessions</div>
+        </div>
+        <div class="time-filter">
+          <button class="tf-btn active" data-days="1">Today</button>
+          <button class="tf-btn" data-days="7">7d</button>
+          <button class="tf-btn" data-days="30">30d</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Fatigue Over Time</div>
+            <div class="card-sub">Average cognitive load by session</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="analyticsChart" height="160"></canvas>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Signal Breakdown</div>
+              <div class="card-sub">Contribution by signal type</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <canvas id="pieChart" height="200"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Level Distribution</div>
+              <div class="card-sub">Time spent at each adaptation level</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <canvas id="levelChart" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HEATMAP ══ -->
+    <div class="section" id="sec-heatmap">
+      <div class="page-header">
+        <div>
+          <div class="page-eyebrow">Heatmap</div>
+          <div class="page-title">Hourly Fatigue Map</div>
+          <div class="page-sub">When during the day is your cognitive load highest?</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Today — 24h Heatmap</div>
+            <div class="card-sub">Each cell = 1 hour. Color intensity = avg fatigue score</div>
+          </div>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#1e1e2e"></div>No data</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#5af0a060"></div>Low</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f09050"></div>High</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="heatmap-grid" id="heatmapGrid"></div>
+          <div class="heat-label-row" id="heatLabels"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Peak Fatigue Hours</div>
+            <div class="card-sub">Hours with highest average cognitive load</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <canvas id="hourChart" height="120"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HISTORY ══ -->
+    <div class="section" id="sec-history">
+      <div class="page-header">
+        <div>
+          <div class="page-eyebrow">Session History</div>
+          <div class="page-title">All Sessions</div>
+          <div class="page-sub">Recorded cognitive snapshots</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body" style="padding-top:0">
+          <table class="history-table" id="historyTable">
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Site</th>
+                <th>Avg Score</th>
+                <th>Level</th>
+                <th>Duration</th>
+                <th>Typing</th>
+                <th>Jitter</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ INSIGHTS ══ -->
+    <div class="section" id="sec-insights">
+      <div class="page-header">
+        <div>
+          <div class="page-eyebrow">Insights</div>
+          <div class="page-title">What Your Data Says</div>
+          <div class="page-sub">Patterns and recommendations based on your behavior</div>
+        </div>
+      </div>
+      <div id="insightsContainer" style="display:flex;flex-direction:column;gap:14px"></div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="section" id="sec-settings">
+      <div class="page-header">
+        <div>
+          <div class="page-eyebrow">Configure</div>
+          <div class="page-title">Settings</div>
+          <div class="page-sub">Adjust how CogniAdapt monitors and adapts</div>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+        <div class="setting-group">
+          <div class="setting-group-title">Detection</div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Enabled</div>
+              <div class="setting-desc">Master on/off switch</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="s-enabled" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Track behavior</div>
+              <div class="setting-desc">Collect typing / mouse / scroll signals</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="s-tracking" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Sensitivity</div>
+              <div class="setting-desc">How quickly to react to changes</div>
+            </div>
+          </div>
+          <input type="range" id="s-sensitivity" min="1" max="10" value="7">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--green);margin-top:4px">Level: <span id="s-sens-val">7</span>/10</div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-group-title">Adaptation</div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Adapt UI</div>
+              <div class="setting-desc">Simplify pages on high fatigue</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="s-adapt" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Floating HUD</div>
+              <div class="setting-desc">Show monitor overlay on pages</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="s-hud" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Level notifications</div>
+              <div class="setting-desc">Toast when adaptation level changes</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="s-notify" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-group-title">Wellness</div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Break reminders</div>
+              <div class="setting-desc">Notify after sustained activity</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="s-breaks" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Break interval</div>
+              <div class="setting-desc">Minutes between reminders</div>
+            </div>
+          </div>
+          <input type="range" id="s-break-interval" min="10" max="60" value="25" step="5">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--green);margin-top:4px">Every <span id="s-break-val">25</span> minutes</div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-group-title">Data</div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-name">Data retention</div>
+              <div class="setting-desc">Days to keep session history</div>
+            </div>
+          </div>
+          <input type="range" id="s-retention" min="1" max="30" value="7">
+          <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--green);margin-top:4px">Keep for <span id="s-ret-val">7</span> days</div>
+          <div class="setting-row" style="margin-top:12px">
+            <div class="setting-info">
+              <div class="setting-name">Clear all data</div>
+              <div class="setting-desc">Delete all stored session history</div>
+            </div>
+            <button id="clearDataBtn" style="padding:6px 12px;border-radius:7px;border:1px solid rgba(240,96,96,0.3);background:rgba(240,96,96,0.08);color:var(--red);font-size:11px;cursor:pointer;font-family:'Syne',sans-serif">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════
+// CHART HELPERS
+// ════════════════════════════════════════════════════
+function scoreColor(s) {
+  if (s < 35) return '#5af0a0';
+  if (s < 60) return '#f0d060';
+  if (s < 80) return '#f09050';
+  return '#f06060';
+}
+
+function drawLineChart(canvas, data, labels, height = 160) {
+  const W = canvas.offsetWidth || 600;
+  const H = height;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+  if (!data.length) return;
+
+  const pad = { top: 10, right: 10, bottom: 24, left: 36 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+  const max = 100, min = 0;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+  ctx.lineWidth = 1;
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = pad.top + cH - (v / 100) * cH;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + cW, y);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = `${9 * devicePixelRatio / devicePixelRatio}px "DM Mono"`;
+    ctx.textAlign = 'right';
+    ctx.fillText(v, pad.left - 6, y + 3);
+  });
+
+  // Threshold zones
+  const zones = [
+    { from: 0, to: 35, color: 'rgba(90,240,160,0.04)' },
+    { from: 35, to: 60, color: 'rgba(240,208,96,0.04)' },
+    { from: 60, to: 80, color: 'rgba(240,144,80,0.04)' },
+    { from: 80, to: 100, color: 'rgba(240,96,96,0.04)' },
+  ];
+  zones.forEach(z => {
+    const y1 = pad.top + cH - (z.to / 100) * cH;
+    const y2 = pad.top + cH - (z.from / 100) * cH;
+    ctx.fillStyle = z.color;
+    ctx.fillRect(pad.left, y1, cW, y2 - y1);
+  });
+
+  // Line
+  const step = cW / Math.max(data.length - 1, 1);
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = pad.left + i * step;
+    const y = pad.top + cH - (v / 100) * cH;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+
+  // Gradient stroke
+  const grad = ctx.createLinearGradient(pad.left, 0, pad.left + cW, 0);
+  data.forEach((v, i) => {
+    grad.addColorStop(i / (data.length - 1 || 1), scoreColor(v));
+  });
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // Fill
+  ctx.lineTo(pad.left + (data.length - 1) * step, pad.top + cH);
+  ctx.lineTo(pad.left, pad.top + cH);
+  ctx.closePath();
+  const fillGrad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+  fillGrad.addColorStop(0, scoreColor(data[data.length - 1]) + '30');
+  fillGrad.addColorStop(1, scoreColor(data[data.length - 1]) + '00');
+  ctx.fillStyle = fillGrad;
+  ctx.fill();
+
+  // X labels
+  if (labels?.length) {
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.font = '9px "DM Mono"';
+    ctx.textAlign = 'center';
+    const step2 = cW / Math.max(labels.length - 1, 1);
+    labels.forEach((l, i) => {
+      if (i % Math.ceil(labels.length / 8) !== 0) return;
+      ctx.fillText(l, pad.left + i * step2, H - 6);
+    });
+  }
+
+  // Dots for small datasets
+  if (data.length <= 20) {
+    data.forEach((v, i) => {
+      const x = pad.left + i * step;
+      const y = pad.top + cH - (v / 100) * cH;
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = scoreColor(v);
+      ctx.fill();
+    });
+  }
+}
+
+function drawBarChart(canvas, data, labels, colors, height = 200) {
+  const W = canvas.offsetWidth || 400;
+  const H = height;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+  const pad = { top: 10, right: 10, bottom: 30, left: 36 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+  const max = Math.max(...data, 1);
+  const barW = (cW / data.length) * 0.65;
+  const gap = (cW / data.length) * 0.35;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = pad.top + cH - (v / max) * cH;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+  });
+
+  data.forEach((v, i) => {
+    const x = pad.left + i * (barW + gap) + gap / 2;
+    const h = (v / max) * cH;
+    const y = pad.top + cH - h;
+    const c = colors?.[i] || scoreColor(v);
+    const g = ctx.createLinearGradient(0, y, 0, pad.top + cH);
+    g.addColorStop(0, c + 'cc');
+    g.addColorStop(1, c + '33');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, h, 4);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '9px "DM Mono"';
+    ctx.textAlign = 'center';
+    if (labels?.[i]) ctx.fillText(labels[i], x + barW / 2, H - 8);
+  });
+}
+
+function drawDonut(canvas, data, colors, labels, height = 200) {
+  const W = canvas.offsetWidth || 300;
+  const H = height;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.clearRect(0, 0, W, H);
+  const cx = W * 0.4, cy = H / 2, r = Math.min(cx, cy) - 16, inner = r * 0.58;
+  const total = data.reduce((a, b) => a + b, 0);
+  if (!total) return;
+  let angle = -Math.PI / 2;
+  data.forEach((v, i) => {
+    const arc = (v / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, angle, angle + arc);
+    ctx.closePath();
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    angle += arc;
+  });
+  // Inner hole
+  ctx.beginPath();
+  ctx.arc(cx, cy, inner, 0, Math.PI * 2);
+  ctx.fillStyle = '#12121c';
+  ctx.fill();
+  // Center text
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.font = `bold 18px "DM Mono"`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(total.toFixed(0), cx, cy);
+  // Legend
+  labels.forEach((l, i) => {
+    const lx = W * 0.72, ly = H / 2 - ((labels.length - 1) / 2) * 22 + i * 22;
+    ctx.beginPath();
+    ctx.arc(lx, ly, 5, 0, Math.PI * 2);
+    ctx.fillStyle = colors[i];
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '10px "DM Mono"';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(l, lx + 10, ly);
+  });
+}
+
+// ════════════════════════════════════════════════════
+// NAV
+// ════════════════════════════════════════════════════
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    const sec = item.dataset.section;
+    document.getElementById('sec-' + sec).classList.add('active');
+    if (sec === 'analytics') renderAnalytics();
+    if (sec === 'heatmap') renderHeatmap();
+    if (sec === 'history') renderHistory();
+    if (sec === 'insights') renderInsights();
+    if (sec === 'settings') loadSettings();
+  });
+});
+
+// ════════════════════════════════════════════════════
+// LIVE OVERVIEW POLL
+// ════════════════════════════════════════════════════
+let liveHistory = [];
+let sessionStart = Date.now();
+
+async function pollLive() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => window.__cogniAdapt?.getState?.() || null
+    });
+    const data = result?.[0]?.result;
+    if (!data) return;
+
+    const score = data.score;
+    const color = scoreColor(score);
+
+    document.getElementById('liveScoreNum').textContent = score;
+    document.getElementById('liveScoreNum').style.color = color;
+    document.getElementById('liveBarFill').style.width = score + '%';
+    document.getElementById('liveBarFill').style.background = color;
+
+    const levelLabels = ['BASELINE NORMAL', 'MILD ADAPTATION', 'SIMPLIFIED MODE', 'FOCUS MODE'];
+    const levelDescs = [
+      'Cognitive load within normal range. Full interface active.',
+      'Mild fatigue detected. Text size and spacing increased.',
+      'High cognitive load. Layout simplified, distractions reduced.',
+      'Critical fatigue. Focus mode active — only essentials visible.'
+    ];
+    document.getElementById('liveLevelLabel').textContent = levelLabels[data.level];
+    document.getElementById('liveLevelLabel').style.color = color;
+    document.getElementById('liveDesc').textContent = levelDescs[data.level];
+
+    // Signals
+    const setSig = (valId, barId, val, max, suffix='%') => {
+      document.getElementById(valId).textContent = val + suffix;
+      const pct = Math.min(val / max * 100, 100);
+      document.getElementById(barId).style.width = pct + '%';
+      document.getElementById(barId).style.background = scoreColor(pct);
+    };
+    setSig('sigTypingVal', 'sigTypingBar', data.typingScore, 100);
+    setSig('sigJitterVal', 'sigJitterBar', data.jitterScore, 5, '');
+    setSig('sigScrollVal', 'sigScrollBar', data.scrollScore, 100);
+
+    // Live chart
+    if (data.history?.length) {
+      liveHistory = data.history.map(h => h.score);
+    } else {
+      liveHistory.push(score);
+      if (liveHistory.length > 60) liveHistory.shift();
+    }
+    drawLineChart(document.getElementById('liveChart'), liveHistory, null, 120);
+
+    // Stats
+    const elapsed = Math.round((Date.now() - sessionStart) / 60000);
+    document.getElementById('sc1').textContent = elapsed + 'm';
+
+  } catch (e) {}
+}
+
+async function loadSummaryStats() {
+  chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (sessions) => {
+    if (!sessions?.length) return;
+    const today = sessions.filter(s => s.timestamp > Date.now() - 86400000);
+    document.getElementById('sc2').textContent = today.filter(s => s.level > 0).length;
+    if (today.length) {
+      const avg = Math.round(today.reduce((a, b) => a + (b.avgScore || 0), 0) / today.length);
+      document.getElementById('sc3').textContent = avg;
+    }
+    const sites = new Set(sessions.map(s => s.url)).size;
+    document.getElementById('sc4').textContent = sites;
+  });
+}
+
+// ════════════════════════════════════════════════════
+// ANALYTICS
+// ════════════════════════════════════════════════════
+function renderAnalytics() {
+  chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (sessions) => {
+    if (!sessions?.length) {
+      // Demo data
+      sessions = generateDemoSessions();
+    }
+    const scores = sessions.slice(-30).map(s => s.avgScore || 0);
+    const labels = sessions.slice(-30).map(s => {
+      const d = new Date(s.timestamp);
+      return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+    });
+    setTimeout(() => {
+      drawLineChart(document.getElementById('analyticsChart'), scores, labels, 160);
+
+      // Signal breakdown donut
+      const avgTyping = Math.round(sessions.reduce((a, b) => a + (b.typingScore || 0), 0) / sessions.length);
+      const avgJitter = Math.round(sessions.reduce((a, b) => a + (b.jitterScore || 0), 0) / sessions.length);
+      const avgScroll = Math.round(sessions.reduce((a, b) => a + (b.scrollScore || 0), 0) / sessions.length);
+      drawDonut(document.getElementById('pieChart'), [avgTyping || 40, avgJitter || 30, avgScroll || 30],
+        ['#5af0a0', '#60a0f0', '#f0d060'],
+        ['Typing', 'Jitter', 'Scroll'], 200);
+
+      // Level distribution
+      const levelCounts = [0, 0, 0, 0];
+      sessions.forEach(s => { if (s.level !== undefined) levelCounts[s.level]++; });
+      drawBarChart(document.getElementById('levelChart'), levelCounts,
+        ['Normal', 'Mild', 'High', 'Focus'],
+        ['#5af0a0', '#f0d060', '#f09050', '#f06060'], 200);
+    }, 50);
+  });
+}
+
+// ════════════════════════════════════════════════════
+// HEATMAP
+// ════════════════════════════════════════════════════
+function renderHeatmap() {
+  chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (sessions) => {
+    if (!sessions?.length) sessions = generateDemoSessions();
+    const hourly = new Array(24).fill(null).map(() => ({ sum: 0, count: 0 }));
+    const today = Date.now() - 86400000;
+    sessions.filter(s => s.timestamp > today).forEach(s => {
+      const h = new Date(s.timestamp).getHours();
+      hourly[h].sum += s.avgScore || 0;
+      hourly[h].count++;
+    });
+
+    const grid = document.getElementById('heatmapGrid');
+    const labels = document.getElementById('heatLabels');
+    grid.innerHTML = '';
+    labels.innerHTML = '';
+
+    hourly.forEach((h, i) => {
+      const avg = h.count ? h.sum / h.count : null;
+      const cell = document.createElement('div');
+      cell.className = 'heat-cell';
+      if (avg !== null) {
+        const c = scoreColor(avg);
+        cell.style.background = c;
+        cell.style.opacity = 0.2 + (avg / 100) * 0.8;
+        cell.title = `${i}:00 — Score: ${Math.round(avg)}`;
+      }
+      grid.appendChild(cell);
+
+      const lbl = document.createElement('div');
+      lbl.className = 'heat-hour-label';
+      lbl.textContent = i % 3 === 0 ? (i < 10 ? '0' + i : i) : '';
+      labels.appendChild(lbl);
+    });
+
+    // Hour bar chart
+    const vals = hourly.map(h => h.count ? Math.round(h.sum / h.count) : 0);
+    const hlabels = hourly.map((_, i) => i % 3 === 0 ? String(i).padStart(2, '0') : '');
+    const cols = vals.map(v => scoreColor(v));
+    setTimeout(() => drawBarChart(document.getElementById('hourChart'), vals, hlabels, cols, 120), 50);
+  });
+}
+
+// ════════════════════════════════════════════════════
+// HISTORY TABLE
+// ════════════════════════════════════════════════════
+function renderHistory() {
+  chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (sessions) => {
+    if (!sessions?.length) sessions = generateDemoSessions();
+    const tbody = document.getElementById('historyBody');
+    tbody.innerHTML = '';
+    const levelColors = ['#5af0a0', '#f0d060', '#f09050', '#f06060'];
+    const levelNames = ['Normal', 'Mild', 'High', 'Focus'];
+    [...sessions].reverse().slice(0, 100).forEach(s => {
+      const d = new Date(s.timestamp);
+      const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const level = s.level ?? 0;
+      const c = levelColors[level];
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="color:var(--text2)">${dateStr} ${timeStr}</td>
+        <td style="color:var(--text);font-family:'DM Mono',monospace;font-size:11px">${s.url || 'unknown'}</td>
+        <td style="color:${scoreColor(s.avgScore || 0)};font-family:'DM Mono',monospace">${s.avgScore || '–'}</td>
+        <td><span class="level-tag" style="background:${c}15;color:${c};border:1px solid ${c}30">${levelNames[level]}</span></td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px">${s.sessionDuration ? Math.round(s.sessionDuration / 60) + 'm' : '–'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px">${s.typingScore !== undefined ? s.typingScore + '%' : '–'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px">${s.jitterScore !== undefined ? s.jitterScore : '–'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    if (!tbody.children.length) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">No sessions recorded yet. Browse some pages!</td></tr>';
+  });
+}
+
+// ════════════════════════════════════════════════════
+// INSIGHTS
+// ════════════════════════════════════════════════════
+function renderInsights() {
+  chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (sessions) => {
+    const container = document.getElementById('insightsContainer');
+    container.innerHTML = '';
+    if (!sessions?.length) sessions = generateDemoSessions();
+
+    const insights = generateInsights(sessions);
+    insights.forEach(ins => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div style="padding:18px 20px;display:flex;gap:16px;align-items:flex-start">
+          <div style="font-size:24px;flex-shrink:0">${ins.icon}</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;margin-bottom:5px;color:${ins.color}">${ins.title}</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6">${ins.body}</div>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  });
+}
+
+function generateInsights(sessions) {
+  const insights = [];
+  if (!sessions.length) return [{ icon: '🌱', title: 'Just getting started', body: 'Browse some websites and CogniAdapt will start building your cognitive profile.', color: 'var(--green)' }];
+
+  const avg = sessions.reduce((a, b) => a + (b.avgScore || 0), 0) / sessions.length;
+  const highFatigue = sessions.filter(s => (s.avgScore || 0) > 65);
+  const sites = {};
+  sessions.forEach(s => { if (s.url) { sites[s.url] = (sites[s.url] || 0) + (s.avgScore || 0); } });
+  const topSite = Object.entries(sites).sort((a, b) => b[1] - a[1])[0];
+
+  insights.push({
+    icon: avg > 60 ? '⚠️' : avg > 40 ? '🌊' : '✅',
+    title: avg > 60 ? 'Elevated baseline fatigue' : avg > 40 ? 'Moderate cognitive load detected' : 'Healthy cognitive baseline',
+    body: `Your average fatigue score across ${sessions.length} sessions is ${Math.round(avg)}/100. ${avg > 60 ? 'Consider more frequent breaks and reducing screen time.' : avg > 40 ? 'Scores are moderate. Monitor for increasing trends.' : 'Great! Your cognitive load is generally within a healthy range.'}`,
+    color: scoreColor(avg)
+  });
+
+  if (highFatigue.length > 2) {
+    insights.push({
+      icon: '🔴',
+      title: `${highFatigue.length} high-fatigue sessions recorded`,
+      body: `You've had ${highFatigue.length} sessions where your cognitive load exceeded 65. These occurred most often at: ${highFatigue.slice(0, 3).map(s => new Date(s.timestamp).getHours() + ':00').join(', ')}. Consider scheduling demanding tasks for your low-fatigue windows.`,
+      color: 'var(--red)'
+    });
+  }
+
+  if (topSite) {
+    insights.push({
+      icon: '🌐',
+      title: `${topSite[0]} triggers highest load`,
+      body: `You show elevated cognitive fatigue most often when visiting ${topSite[0]}. This may indicate complex content, dense information, or a need for better break habits on this site.`,
+      color: 'var(--orange)'
+    });
+  }
+
+  insights.push({
+    icon: '💡',
+    title: 'Recovery tip',
+    body: 'When focus mode activates, your interface will show only the primary content. This is intentional — reducing visual complexity by ~70% measurably lowers cognitive load within 2-3 minutes.',
+    color: 'var(--blue)'
+  });
+
+  return insights;
+}
+
+// ════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════
+function loadSettings() {
+  chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (s) => {
+    if (!s) return;
+    document.getElementById('s-enabled').checked = s.enabled;
+    document.getElementById('s-tracking').checked = s.trackingEnabled;
+    document.getElementById('s-adapt').checked = s.adaptUI;
+    document.getElementById('s-hud').checked = s.showFloatingHUD;
+    document.getElementById('s-notify').checked = s.notifyOnLevelChange;
+    document.getElementById('s-breaks').checked = s.breakReminders;
+    document.getElementById('s-sensitivity').value = Math.round(s.sensitivity * 10);
+    document.getElementById('s-sens-val').textContent = Math.round(s.sensitivity * 10);
+    document.getElementById('s-break-interval').value = s.breakIntervalMin || 25;
+    document.getElementById('s-break-val').textContent = s.breakIntervalMin || 25;
+    document.getElementById('s-retention').value = s.dataRetentionDays || 7;
+    document.getElementById('s-ret-val').textContent = s.dataRetentionDays || 7;
+  });
+}
+
+function bindSetting(id, key, transform = v => v) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('change', () => {
+    chrome.runtime.sendMessage({ type: 'UPDATE_SETTINGS', data: { [key]: transform(el.type === 'checkbox' ? el.checked : el.value) } });
+  });
+  if (el.type === 'range') {
+    el.addEventListener('input', () => {
+      const displayId = id.replace('s-', 's-') + '-val';
+      const disp = document.getElementById(id.split('-').slice(0,2).join('-') + '-val') ||
+                   document.getElementById(id + '-val') ||
+                   document.getElementById('s-' + id.split('-')[1] + '-val');
+    });
+  }
+}
+
+document.getElementById('s-sensitivity').addEventListener('input', (e) => {
+  document.getElementById('s-sens-val').textContent = e.target.value;
+  chrome.runtime.sendMessage({ type: 'UPDATE_SETTINGS', data: { sensitivity: parseInt(e.target.value) / 10 } });
+});
+
+document.getElementById('s-break-interval').addEventListener('input', (e) => {
+  document.getElementById('s-break-val').textContent = e.target.value;
+  chrome.runtime.sendMessage({ type: 'UPDATE_SETTINGS', data: { breakIntervalMin: parseInt(e.target.value) } });
+});
+
+document.getElementById('s-retention').addEventListener('input', (e) => {
+  document.getElementById('s-ret-val').textContent = e.target.value;
+  chrome.runtime.sendMessage({ type: 'UPDATE_SETTINGS', data: { dataRetentionDays: parseInt(e.target.value) } });
+});
+
+['s-enabled','s-tracking','s-adapt','s-hud','s-notify','s-breaks'].forEach(id => {
+  const map = {
+    's-enabled': 'enabled', 's-tracking': 'trackingEnabled',
+    's-adapt': 'adaptUI', 's-hud': 'showFloatingHUD',
+    's-notify': 'notifyOnLevelChange', 's-breaks': 'breakReminders'
+  };
+  document.getElementById(id)?.addEventListener('change', (e) => {
+    chrome.runtime.sendMessage({ type: 'UPDATE_SETTINGS', data: { [map[id]]: e.target.checked } });
+  });
+});
+
+document.getElementById('clearDataBtn').addEventListener('click', () => {
+  if (confirm('Clear all session history? This cannot be undone.')) {
+    chrome.storage.local.set({ sessions: [] }).then(() => renderHistory());
+  }
+});
+
+// ════════════════════════════════════════════════════
+// DEMO DATA GENERATOR
+// ════════════════════════════════════════════════════
+function generateDemoSessions() {
+  const sites = ['news.ycombinator.com', 'github.com', 'docs.google.com', 'medium.com', 'reddit.com'];
+  const sessions = [];
+  const now = Date.now();
+  for (let i = 0; i < 60; i++) {
+    const hoursAgo = (60 - i) * 0.4;
+    const score = 20 + Math.sin(i * 0.3) * 25 + Math.random() * 20 + (i > 35 ? 10 : 0);
+    sessions.push({
+      timestamp: now - hoursAgo * 3600000,
+      url: sites[i % sites.length],
+      avgScore: Math.round(Math.min(Math.max(score, 5), 95)),
+      level: score < 35 ? 0 : score < 55 ? 1 : score < 75 ? 2 : 3,
+      typingScore: Math.round(score * 0.5 + Math.random() * 20),
+      jitterScore: Math.round(score * 0.3 + Math.random() * 1.5) / 10,
+      scrollScore: Math.round(score * 0.2 + Math.random() * 15),
+      sessionDuration: 120 + Math.random() * 600,
+    });
+  }
+  return sessions;
+}
+
+// ════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════
+pollLive();
+loadSummaryStats();
+setInterval(pollLive, 2000);
+setInterval(loadSummaryStats, 15000);
+</script>
+</body>
+</html>

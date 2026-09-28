@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CognitiveShift — Fatigue-Aware Interface Adapter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --bg:     #000510;
+      --bg2:    #020d1a;
+      --cyan:   #00e5ff;
+      --purple: #9d00ff;
+      --pink:   #ff0055;
+      --glass:  rgba(2,13,26,0.55);
+      --border: rgba(0,229,255,0.15);
+      --text:   rgba(255,255,255,0.88);
+      --muted:  rgba(255,255,255,0.42);
+      --fh:     'Syne', sans-serif;
+      --fm:     'Space Mono', monospace;
+      --fb:     'Inter', sans-serif;
+    }
+    html { scroll-behavior:smooth; }
+    body { background:var(--bg); color:var(--text); font-family:var(--fb); overflow-x:hidden; }
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:2px}
+
+    /* NAV */
+    nav {
+      position:fixed; top:0; left:0; right:0; z-index:300;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:20px 56px;
+      background:rgba(0,5,16,0.65); backdrop-filter:blur(20px);
+      border-bottom:1px solid var(--border);
+    }
+    .nav-logo { font-family:var(--fh); font-weight:800; font-size:18px; letter-spacing:-0.5px; background:linear-gradient(135deg,var(--cyan),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .nav-links { display:flex; gap:36px; list-style:none; }
+    .nav-links a { font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); text-decoration:none; transition:color .3s; }
+    .nav-links a:hover { color:var(--cyan); }
+    .nav-cta { padding:10px 24px; background:transparent; border:1px solid var(--cyan); color:var(--cyan); font-family:var(--fm); font-size:11px; letter-spacing:2px; text-transform:uppercase; cursor:pointer; border-radius:4px; text-decoration:none; transition:all .3s; }
+    .nav-cta:hover { background:rgba(0,229,255,.1); box-shadow:0 0 20px rgba(0,229,255,.25); }
+
+    /* HERO */
+    #hero {
+      position:relative; min-height:100vh;
+      display:flex; align-items:stretch; overflow:hidden; padding-top:80px;
+    }
+    .hero-left {
+      position:relative; z-index:10; width:48%;
+      display:flex; flex-direction:column; justify-content:center;
+      padding:80px 0 80px 56px;
+    }
+    .hero-right { position:relative; width:52%; min-height:calc(100vh - 80px); }
+    #brain-container { position:absolute; inset:0; overflow:hidden; }
+    #brain-container canvas { width:100% !important; height:100% !important; display:block; }
+    .hero-blend {
+      position:absolute; inset:0; pointer-events:none; z-index:5;
+      background:linear-gradient(to right, #000510 0%, rgba(0,5,16,0.72) 14%, rgba(0,5,16,0.18) 34%, transparent 54%);
+    }
+    .hero-right-fade {
+      position:absolute; top:0; right:0; bottom:0; width:70px; z-index:6; pointer-events:none;
+      background:linear-gradient(to right, transparent, #000510);
+    }
+    #brain-loading {
+      position:absolute; inset:0; z-index:20;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+      background:var(--bg); transition:opacity .9s ease;
+    }
+    #brain-loading.hidden { opacity:0; pointer-events:none; }
+    .bl-text { font-family:var(--fm); font-size:10px; letter-spacing:3px; text-transform:uppercase; color:rgba(0,229,255,.7); }
+    .bl-track { width:200px; height:2px; background:rgba(0,229,255,.1); border-radius:2px; overflow:hidden; }
+    .bl-fill  { height:100%; width:0%; background:linear-gradient(90deg,var(--cyan),var(--purple)); border-radius:2px; transition:width .3s ease; }
+    #brain-controls {
+      position:absolute; bottom:28px; left:50%; transform:translateX(-50%); z-index:15;
+      display:flex; gap:12px;
+      background:rgba(2,13,26,.55); padding:8px 18px; border-radius:30px;
+      border:1px solid rgba(0,229,255,.2); backdrop-filter:blur(12px);
+      opacity:0; transition:opacity .8s ease;
+    }
+    #brain-controls.visible { opacity:1; }
+    .sbtn { background:transparent; border:1px solid rgba(255,255,255,.12); color:rgba(255,255,255,.55); padding:7px 20px; border-radius:18px; font-family:var(--fm); font-size:10px; letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:all .3s ease; }
+    .sbtn:hover { background:rgba(255,255,255,.05); color:#fff; }
+    .sbtn.calm-active  { background:rgba(0,229,255,.2);  border-color:rgba(0,229,255,.7);  color:var(--cyan);   box-shadow:0 0 14px rgba(0,229,255,.35); }
+    .sbtn.medium-active{ background:rgba(157,0,255,.2);  border-color:rgba(157,0,255,.7);  color:var(--purple); box-shadow:0 0 14px rgba(157,0,255,.35); }
+    .sbtn.stress-active{ background:rgba(255,0,85,.2);   border-color:rgba(255,0,85,.7);   color:var(--pink);   box-shadow:0 0 14px rgba(255,0,85,.35);  }
+    #brain-slider-panel {
+      position:absolute; top:24px; right:20px; z-index:15;
+      background:rgba(2,13,26,.6); padding:14px 20px; border-radius:14px;
+      border:1px solid rgba(255,255,255,.1); backdrop-filter:blur(12px);
+      font-family:var(--fm); opacity:0; transition:opacity .8s ease;
+    }
+    #brain-slider-panel.visible { opacity:1; }
+    .sp-label { color:rgba(255,255,255,.45); font-size:9px; letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; }
+    .sp-row   { display:flex; align-items:center; gap:12px; }
+    input[type=range] { -webkit-appearance:none; width:130px; background:rgba(255,255,255,.1); height:3px; border-radius:2px; outline:none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:13px; height:13px; border-radius:50%; background:#fff; cursor:pointer; box-shadow:0 0 8px rgba(255,255,255,.5); transition:transform .1s; }
+    input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.35); }
+    #sp-val { color:var(--cyan); font-family:monospace; font-size:13px; font-weight:bold; min-width:38px; text-align:right; }
+
+    /* EXTENSION STATUS BADGE in hero */
+    .ext-status-badge {
+      display:inline-flex; align-items:center; gap:10px;
+      background:rgba(0,229,255,0.06); border:1px solid rgba(0,229,255,0.2);
+      border-radius:8px; padding:10px 16px; margin-bottom:16px;
+      font-family:var(--fm); font-size:10px; letter-spacing:1.5px; color:var(--muted);
+      transition:all 0.5s;
+    }
+    .ext-status-badge.connected {
+      background:rgba(0,229,255,0.1); border-color:rgba(0,229,255,0.4);
+      color:var(--cyan);
+    }
+    .ext-dot { width:7px; height:7px; border-radius:50%; background:var(--muted); transition:all 0.5s; }
+    .ext-status-badge.connected .ext-dot { background:var(--cyan); box-shadow:0 0 8px var(--cyan); animation:pulse 1.5s infinite; }
+
+    /* hero text */
+    .hero-eyebrow { font-family:var(--fm); font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--cyan); margin-bottom:22px; display:flex; align-items:center; gap:12px; }
+    .hero-eyebrow::before { content:''; display:block; width:36px; height:1px; background:var(--cyan); }
+    .hero-title { font-family:var(--fh); font-size:clamp(38px,5.5vw,76px); font-weight:800; line-height:1.0; letter-spacing:-2px; margin-bottom:26px; }
+    .hero-title span { background:linear-gradient(135deg,var(--cyan) 0%,var(--purple) 55%,var(--pink) 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .hero-sub { font-size:15px; line-height:1.8; color:var(--muted); max-width:440px; margin-bottom:42px; }
+    .hero-actions { display:flex; gap:16px; align-items:center; margin-bottom:48px; }
+    .btn-primary { display:inline-flex; align-items:center; gap:10px; padding:15px 34px; background:linear-gradient(135deg,var(--cyan),#0099cc); color:#000510; font-family:var(--fm); font-size:11px; letter-spacing:2px; text-transform:uppercase; font-weight:700; border:none; border-radius:4px; cursor:pointer; text-decoration:none; transition:all .35s; box-shadow:0 0 28px rgba(0,229,255,.35); }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 36px rgba(0,229,255,.55); }
+    .btn-ghost { display:inline-flex; align-items:center; gap:8px; font-family:var(--fm); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); text-decoration:none; transition:color .3s; }
+    .btn-ghost:hover { color:var(--text); }
+    .live-badge { display:inline-flex; align-items:center; gap:12px; background:var(--glass); border:1px solid var(--border); backdrop-filter:blur(16px); border-radius:12px; padding:14px 20px; animation:float 4s ease-in-out infinite; width:fit-content; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-7px)} }
+    .live-dot { width:8px; height:8px; border-radius:50%; background:var(--cyan); box-shadow:0 0 8px var(--cyan); animation:pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.75)} }
+    .live-text { font-family:var(--fm); font-size:11px; letter-spacing:1.5px; color:var(--cyan); text-transform:uppercase; }
+    .live-text span { display:block; color:var(--muted); font-size:9px; margin-top:2px; }
+
+    /* SECTIONS */
+    .sw { padding:110px 56px; max-width:1400px; margin:0 auto; }
+    .section-label { font-family:var(--fm); font-size:10px; letter-spacing:4px; text-transform:uppercase; color:var(--cyan); margin-bottom:14px; }
+    .section-title { font-family:var(--fh); font-size:clamp(30px,3.8vw,50px); font-weight:800; letter-spacing:-1px; line-height:1.1; margin-bottom:18px; }
+    .section-sub   { font-size:15px; color:var(--muted); line-height:1.8; max-width:540px; }
+    hr.div { border:none; border-top:1px solid rgba(255,255,255,.06); }
+
+    /* SIGNALS */
+    .sig-grid { display:grid; grid-template-columns:1fr 1fr; gap:56px; margin-top:68px; }
+    .sig-left { display:flex; flex-direction:column; gap:22px; }
+    .scard { background:var(--glass); border:1px solid var(--border); border-radius:12px; padding:22px 26px; display:flex; gap:18px; align-items:flex-start; backdrop-filter:blur(10px); transition:border-color .3s,transform .3s; cursor:default; }
+    .scard:hover { border-color:rgba(0,229,255,.4); transform:translateX(6px); }
+    .sico { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+    .ic{background:rgba(0,229,255,.12)} .ip{background:rgba(157,0,255,.12)} .ir{background:rgba(255,0,85,.12)} .ig{background:rgba(255,193,7,.12)}
+    .scard h4 { font-family:var(--fh); font-size:14px; font-weight:700; margin-bottom:5px; }
+    .scard p  { font-size:13px; color:var(--muted); line-height:1.65; }
+    .wpanel { background:var(--glass); border:1px solid var(--border); border-radius:16px; padding:26px; backdrop-filter:blur(10px); display:flex; flex-direction:column; }
+    .wpanel h4 { font-family:var(--fm); font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-bottom:18px; }
+    #waveform-canvas { width:100%; flex:1; min-height:240px; border-radius:8px; background:rgba(0,0,0,.3); display:block; }
+    .wleg { display:flex; gap:18px; margin-top:14px; flex-wrap:wrap; }
+    .wli  { display:flex; align-items:center; gap:8px; font-family:var(--fm); font-size:9px; color:var(--muted); }
+    .wld  { width:8px; height:8px; border-radius:50%; }
+
+    /* DASHBOARD */
+    .dash-grid { display:grid; grid-template-columns:1.4fr 1fr; gap:26px; margin-top:68px; }
+    .gpanel  { background:var(--glass); border:1px solid var(--border); border-radius:16px; backdrop-filter:blur(10px); overflow:hidden; }
+    .ph { padding:20px 26px; border-bottom:1px solid rgba(255,255,255,.06); display:flex; align-items:center; justify-content:space-between; }
+    .pt { font-family:var(--fm); font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
+    .ps { font-family:var(--fm); font-size:12px; }
+    .pb { padding:26px; }
+    #stress-graph-canvas { width:100%; height:210px; display:block; border-radius:8px; }
+    .gauge-wrap { display:flex; flex-direction:column; align-items:center; padding:30px 26px; gap:18px; }
+    #gauge-canvas { width:170px; height:170px; display:block; }
+    .gscore { font-family:var(--fm); font-size:44px; font-weight:700; background:linear-gradient(135deg,var(--cyan),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; line-height:1; }
+    .gsub   { font-family:var(--fm); font-size:9px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); margin-top:6px; }
+    .gmetrics { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .mbox  { background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.06); border-radius:8px; padding:12px 14px; }
+    .mlbl  { font-family:var(--fm); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+    .mval  { font-family:var(--fm); font-size:17px; font-weight:700; }
+
+    /* source badge on dashboard */
+    .data-source-tag {
+      font-family:var(--fm); font-size:8px; letter-spacing:1.5px;
+      padding:3px 8px; border-radius:4px; text-transform:uppercase;
+    }
+    .ds-live { background:rgba(0,229,255,.12); color:var(--cyan); border:1px solid rgba(0,229,255,.25); }
+    .ds-demo { background:rgba(255,255,255,.06); color:var(--muted); border:1px solid rgba(255,255,255,.1); }
+
+    /* LEVELS */
+    .levels-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-top:68px; }
+    .lcard { border-radius:16px; padding:34px 28px; transition:transform .3s; cursor:default; }
+    .lcard:hover { transform:translateY(-6px); }
+    .lcard.lv1 { background:rgba(0,229,255,.05); border:1px solid rgba(0,229,255,.2); }
+    .lcard.lv2 { background:rgba(157,0,255,.05); border:1px solid rgba(157,0,255,.2); }
+    .lcard.lv3 { background:rgba(255,0,85,.05);  border:1px solid rgba(255,0,85,.2);  }
+    .lbadge { font-family:var(--fm); font-size:9px; letter-spacing:3px; text-transform:uppercase; margin-bottom:18px; display:inline-flex; align-items:center; gap:8px; }
+    .bdot   { width:6px; height:6px; border-radius:50%; }
+    .lv1 .bdot { background:var(--cyan);   box-shadow:0 0 8px var(--cyan); }
+    .lv2 .bdot { background:var(--purple); box-shadow:0 0 8px var(--purple); }
+    .lv3 .bdot { background:var(--pink);   box-shadow:0 0 8px var(--pink); }
+    .lscore { font-family:var(--fh); font-size:54px; font-weight:800; letter-spacing:-3px; line-height:1; margin-bottom:6px; }
+    .lv1 .lscore { color:var(--cyan); } .lv2 .lscore { color:var(--purple); } .lv3 .lscore { color:var(--pink); }
+    .lrange { font-family:var(--fm); font-size:9px; color:var(--muted); margin-bottom:22px; }
+    .lname  { font-family:var(--fh); font-size:20px; font-weight:700; margin-bottom:10px; }
+    .ldesc  { font-size:13px; color:var(--muted); line-height:1.7; margin-bottom:22px; }
+    .lchanges { list-style:none; display:flex; flex-direction:column; gap:7px; }
+    .lchanges li { font-size:12px; color:var(--muted); display:flex; align-items:flex-start; gap:8px; }
+    .lchanges li::before { content:'→'; font-family:var(--fm); flex-shrink:0; }
+    .lv1 .lchanges li::before { color:var(--cyan); } .lv2 .lchanges li::before { color:var(--purple); } .lv3 .lchanges li::before { color:var(--pink); }
+
+    /* CALENDAR */
+    .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:26px; }
+    .mnav  { display:flex; align-items:center; gap:14px; }
+    .mnav button { background:var(--glass); border:1px solid var(--border); color:var(--muted); width:30px; height:30px; border-radius:6px; cursor:pointer; font-size:15px; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+    .mnav button:hover { border-color:var(--cyan); color:var(--cyan); }
+    .mlabel { font-family:var(--fm); font-size:12px; letter-spacing:2px; text-transform:uppercase; }
+    .mavg   { font-family:var(--fm); font-size:10px; color:var(--muted); }
+    .cal-outer { background:var(--glass); border:1px solid var(--border); border-radius:16px; backdrop-filter:blur(10px); padding:28px; }
+    .cal-wds  { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:6px; }
+    .cal-wd   { font-family:var(--fm); font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); text-align:center; padding-bottom:4px; }
+    .cal-days { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
+    .cday { aspect-ratio:1; border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:transform .2s,box-shadow .2s; position:relative; border:1px solid rgba(255,255,255,.03); }
+    .cday:hover { transform:scale(1.18); z-index:10; }
+    .cday .dnum   { font-family:var(--fm); font-size:10px; font-weight:700; }
+    .cday .dscore { font-size:7px; margin-top:1px; opacity:.7; }
+    .dn { background:rgba(255,255,255,.02); }
+    .dl { background:rgba(0,229,255,.11); border-color:rgba(0,229,255,.2); } .dl .dnum { color:var(--cyan); }
+    .dm { background:rgba(157,0,255,.14); border-color:rgba(157,0,255,.22); } .dm .dnum { color:var(--purple); }
+    .dh { background:rgba(255,0,85,.17); border-color:rgba(255,0,85,.26); }  .dh .dnum { color:var(--pink); }
+    .dt { box-shadow:0 0 0 2px var(--cyan),0 0 12px rgba(0,229,255,.4); }
+    /* live marker on today when extension is connected */
+    .dtoday-live { box-shadow:0 0 0 2px var(--cyan),0 0 18px rgba(0,229,255,.55); }
+    .ctt { display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:#020d1a; border:1px solid var(--border); border-radius:8px; padding:9px 13px; white-space:nowrap; z-index:100; pointer-events:none; }
+    .cday:hover .ctt { display:block; }
+    .ctt-d { font-family:var(--fm); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+    .ctt-s { font-family:var(--fm); font-size:15px; font-weight:700; }
+    .cal-leg { display:flex; align-items:center; gap:11px; margin-top:18px; font-family:var(--fm); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+    .cs { width:14px; height:14px; border-radius:3px; display:inline-block; }
+
+    /* DOWNLOAD */
+    #dl-sec { text-align:center; padding:110px 24px; position:relative; overflow:hidden; }
+    .dl-glow { position:absolute; width:600px; height:600px; border-radius:50%; background:radial-gradient(circle,rgba(0,229,255,.07) 0%,transparent 70%); top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; }
+    #dl-sec .section-title { max-width:660px; margin:0 auto 18px; }
+    #dl-sec .section-sub   { margin:0 auto 48px; }
+    .dl-cards { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; margin-bottom:48px; }
+    .dlcard { background:var(--glass); border:1px solid var(--border); border-radius:12px; padding:22px 30px; display:flex; align-items:center; gap:13px; backdrop-filter:blur(10px); transition:all .3s; min-width:210px; }
+    .dlcard:hover { border-color:rgba(0,229,255,.4); transform:translateY(-4px); box-shadow:0 12px 36px rgba(0,229,255,.1); }
+    .dlci { font-size:26px; }
+    .dlcv { font-family:var(--fm); font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:3px; }
+    .dlcn { font-family:var(--fh); font-size:14px; font-weight:700; }
+    .btn-dl { display:inline-flex; align-items:center; gap:13px; padding:18px 50px; background:linear-gradient(135deg,var(--cyan) 0%,#0099cc 100%); color:#000510; font-family:var(--fm); font-size:12px; letter-spacing:3px; text-transform:uppercase; font-weight:700; border:none; border-radius:6px; cursor:pointer; text-decoration:none; transition:all .35s; box-shadow:0 0 36px rgba(0,229,255,.38),0 18px 50px rgba(0,0,0,.5); }
+    .btn-dl:hover { transform:translateY(-3px); box-shadow:0 0 55px rgba(0,229,255,.58),0 22px 70px rgba(0,0,0,.6); }
+    .dl-note { margin-top:18px; font-family:var(--fm); font-size:9px; letter-spacing:1.5px; color:var(--muted); }
+
+    /* install steps */
+    .install-steps {
+      display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-top:36px; margin-bottom:8px;
+    }
+    .istep {
+      background:var(--glass); border:1px solid var(--border); border-radius:10px;
+      padding:14px 20px; text-align:left; min-width:170px; max-width:200px;
+      backdrop-filter:blur(10px);
+    }
+    .istep-num { font-family:var(--fm); font-size:9px; color:var(--cyan); letter-spacing:2px; margin-bottom:6px; }
+    .istep-text { font-size:12px; color:var(--muted); line-height:1.5; }
+
+    /* FOOTER */
+    footer { border-top:1px solid rgba(255,255,255,.06); padding:36px 56px; display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-family:var(--fm); font-size:9px; letter-spacing:2px; }
+
+    /* ANIMATIONS */
+    .fade-in { opacity:0; transform:translateY(24px); animation:fadeUp .8s ease forwards; }
+    @keyframes fadeUp { to { opacity:1; transform:translateY(0); } }
+    .d1{animation-delay:.1s} .d2{animation-delay:.25s} .d3{animation-delay:.4s} .d4{animation-delay:.55s}
+
+    @media(max-width:900px){
+      nav{padding:16px 20px} .nav-links{display:none}
+      #hero{flex-direction:column}
+      .hero-left{width:100%;padding:100px 24px 40px}
+      .hero-right{width:100%;min-height:70vw}
+      .sw{padding:80px 24px}
+      .sig-grid,.dash-grid,.levels-grid{grid-template-columns:1fr}
+      footer{flex-direction:column;gap:10px;text-align:center}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">CognitiveShift</div>
+  <ul class="nav-links">
+    <li><a href="#sec-signals">How It Works</a></li>
+    <li><a href="#sec-dash">Dashboard</a></li>
+    <li><a href="#sec-levels">Levels</a></li>
+    <li><a href="#sec-cal">History</a></li>
+  </ul>
+  <a href="#dl-sec" class="nav-cta">Download</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow fade-in">Cognitive Fatigue Adapter</div>
+    <h1 class="hero-title fade-in d1">Interface that<br/><span>breathes with you</span></h1>
+    <p class="hero-sub fade-in d2">Passively reads your typing rhythm, cursor jitter, and scroll entropy. Silently simplifies any website the moment your brain needs it — no configuration, no wearables, no setup.</p>
+    <div class="hero-actions fade-in d3">
+      <a href="cognitiveshift-extension.zip" download="CognitiveShift-v1.0.zip" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download Extension
+      </a>
+      <a href="#sec-signals" class="btn-ghost">Learn the science →</a>
+    </div>
+    <!-- Extension connection status -->
+    <div class="ext-status-badge fade-in d3" id="ext-badge">
+      <div class="ext-dot"></div>
+      <span id="ext-badge-text">Extension not detected — showing demo data</span>
+    </div>
+    <div class="live-badge fade-in d4">
+      <div class="live-dot"></div>
+      <div class="live-text">Fatigue Score: <strong id="hero-score">24</strong><span id="hero-score-sub">Demo mode — install extension for live data</span></div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="hero-blend"></div>
+    <div class="hero-right-fade"></div>
+    <div id="brain-container">
+      <div id="brain-loading">
+        <div class="bl-text">Loading neural renderer…</div>
+        <div class="bl-track"><div class="bl-fill" id="bl-fill"></div></div>
+      </div>
+    </div>
+    <div id="brain-controls">
+      <button class="sbtn calm-active"   id="sb-calm"   onclick="window.setBrainState('calm')">Calm</button>
+      <button class="sbtn"               id="sb-medium" onclick="window.setBrainState('medium')">Medium</button>
+      <button class="sbtn"               id="sb-stress" onclick="window.setBrainState('stress')">Stress</button>
+    </div>
+    <div id="brain-slider-panel">
+      <div class="sp-label">🔴 Live Stress Level</div>
+      <div class="sp-row">
+        <input type="range" id="stress-slider" min="0" max="100" value="0" oninput="window.setBrainLevel(+this.value)"/>
+        <span id="sp-val">0%</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SIGNALS -->
+<hr class="div"/>
+<div class="sw" id="sec-signals">
+  <div class="section-label">Signal Collection</div>
+  <h2 class="section-title">Four signals. Zero effort.</h2>
+  <p class="section-sub">Your brain leaks its state through micro-behaviors. CognitiveShift compares you only to yourself — never a population average.</p>
+  <div class="sig-grid">
+    <div class="sig-left">
+      <div class="scard"><div class="sico ic">⌨️</div><div><h4>Inter-Keystroke Interval</h4><p>Tracks timing variance between keypresses. ADHD brains show characteristic stutter-step bursts — rapid typing followed by 400ms+ lapses. Coefficient of variation, not raw speed.</p></div></div>
+      <div class="scard"><div class="sico ip">🖱️</div><div><h4>Cursor Jitter Score</h4><p>Samples mouse at 60 Hz. Computes perpendicular deviation from the ideal path between two intentional clicks. Normal: 0.05–0.15. Fatigue threshold: above 0.30.</p></div></div>
+      <div class="scard"><div class="sico ir">📜</div><div><h4>Scroll Entropy</h4><p>Direction reversals per unit of content. Calm reading scrolls linearly. Confused re-reading produces high-entropy back-and-forth without pausing at content boundaries.</p></div></div>
+      <div class="scard"><div class="sico ig">👁️</div><div><h4>Dwell / Re-read Ratio</h4><p>IntersectionObserver tracks viewport dwell vs expected reading time. A ratio above 2.0 across multiple paragraphs is a strong cognitive load signal.</p></div></div>
+    </div>
+    <div class="wpanel">
+      <h4 id="waveform-title">🔴 Live IKI Waveform — Demo</h4>
+      <canvas id="waveform-canvas"></canvas>
+      <div class="wleg">
+        <div class="wli"><div class="wld" style="background:var(--cyan)"></div>Neurotypical baseline</div>
+        <div class="wli"><div class="wld" style="background:var(--pink)"></div>ADHD pattern (lapses)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<hr class="div"/>
+<div class="sw" id="sec-dash">
+  <div class="section-label">Realtime Engine</div>
+  <h2 class="section-title">The inference dashboard</h2>
+  <p class="section-sub">Every 30 s a feature vector is computed vs your personal session baseline. Hysteresis prevents false positives from brief distractions.</p>
+  <div class="dash-grid">
+    <div class="gpanel">
+      <div class="ph">
+        <span class="pt">Session Stress Timeline</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="ps" id="level-label" style="color:var(--cyan)">● LOW — Score: 24</span>
+          <span class="data-source-tag ds-demo" id="graph-source-tag">DEMO</span>
+        </div>
+      </div>
+      <div class="pb"><canvas id="stress-graph-canvas"></canvas></div>
+    </div>
+    <div class="gpanel">
+      <div class="ph">
+        <span class="pt">Fatigue Score</span>
+        <span class="ps" style="color:var(--muted)">0 – 100</span>
+      </div>
+      <div class="gauge-wrap">
+        <canvas id="gauge-canvas" width="170" height="170"></canvas>
+        <div style="text-align:center"><div class="gscore" id="gauge-num">24</div><div class="gsub" id="gauge-lbl">Cognitive Load: Low</div></div>
+        <div class="gmetrics">
+          <div class="mbox"><div class="mlbl">IKI Variance</div> <div class="mval" id="m-iki"    style="color:var(--cyan)">0.31</div></div>
+          <div class="mbox"><div class="mlbl">Cursor Jitter</div><div class="mval" id="m-jitter" style="color:var(--cyan)">0.09</div></div>
+          <div class="mbox"><div class="mlbl">Scroll Entropy</div><div class="mval" id="m-scroll" style="color:var(--cyan)">0.14</div></div>
+          <div class="mbox"><div class="mlbl">Re-read Ratio</div><div class="mval" id="m-dwell"  style="color:var(--cyan)">1.1×</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LEVELS -->
+<hr class="div"/>
+<div class="sw" id="sec-levels">
+  <div class="section-label">Adaptation Engine</div>
+  <h2 class="section-title">Three levels. Infinite compassion.</h2>
+  <p class="section-sub">A continuous scale with distinct purposeful stages — and a recovery pathway that notices when you're better.</p>
+  <div class="levels-grid">
+    <div class="lcard lv1"><div class="lbadge"><div class="bdot"></div>Level 1</div><div class="lscore">30</div><div class="lrange">Score 30–55 · 90 s sustained</div><div class="lname">Gentle Nudge</div><p class="ldesc">Mild load detected. Subtle readability boosts without disrupting flow.</p><ul class="lchanges"><li>Font size +2px</li><li>Line-height → 1.8</li><li>Animations slowed 30%</li><li>Contrast boosted</li></ul></div>
+    <div class="lcard lv2"><div class="lbadge"><div class="bdot"></div>Level 2</div><div class="lscore">55</div><div class="lrange">Score 55–70 · 90 s sustained</div><div class="lname">Focus Mode</div><p class="ldesc">Moderate fatigue. Distractions collapse around primary task.</p><ul class="lchanges"><li>Sidebars and ads hidden</li><li>Non-essential nav collapsed</li><li>Font → 18px</li><li>Reading column → 700px</li></ul></div>
+    <div class="lcard lv3"><div class="lbadge"><div class="bdot"></div>Level 3</div><div class="lscore">70</div><div class="lrange">Score 70+ · 90 s sustained</div><div class="lname">Emergency Clarity</div><p class="ldesc">Severe fatigue. Full structural intervention — the interface becomes a lifeline.</p><ul class="lchanges"><li>Nav → 3 priority big boxes</li><li>All animations frozen</li><li>Page desaturated</li><li>Paragraph hover highlights</li></ul></div>
+  </div>
+</div>
+
+<!-- CALENDAR -->
+<hr class="div"/>
+<div class="sw" id="sec-cal">
+  <div class="section-label">Stress History</div>
+  <h2 class="section-title">Your cognitive calendar</h2>
+  <p class="section-sub">Every session logged. Spot your high-stress days and protect your low-stress ones.</p>
+  <div style="margin-top:60px">
+    <div class="cal-header">
+      <div class="mnav"><button id="prev-month">‹</button><div class="mlabel" id="cal-month">April 2026</div><button id="next-month">›</button></div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="mavg">Month avg: <strong id="month-avg" style="color:var(--cyan)">—</strong></div>
+        <span class="data-source-tag ds-demo" id="cal-source-tag">DEMO</span>
+      </div>
+    </div>
+    <div class="cal-outer">
+      <div class="cal-wds"><div class="cal-wd">Sun</div><div class="cal-wd">Mon</div><div class="cal-wd">Tue</div><div class="cal-wd">Wed</div><div class="cal-wd">Thu</div><div class="cal-wd">Fri</div><div class="cal-wd">Sat</div></div>
+      <div class="cal-days" id="cal-days"></div>
+      <div class="cal-leg"><span>Fatigue:</span><span class="cs" style="background:rgba(255,255,255,.04)"></span><span>No data</span><span class="cs" style="background:rgba(0,229,255,.18)"></span><span>Low</span><span class="cs" style="background:rgba(157,0,255,.22)"></span><span>Medium</span><span class="cs" style="background:rgba(255,0,85,.28)"></span><span>High</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- DOWNLOAD -->
+<hr class="div"/>
+<div id="dl-sec">
+  <div class="dl-glow"></div>
+  <div class="section-label" style="justify-content:center;display:flex">Free · Open Source · Private</div>
+  <h2 class="section-title">Install in seconds.<br/>Works everywhere.</h2>
+  <p class="section-sub">No account. No data sent to any server. All inference runs locally in your browser tab.</p>
+  <div class="dl-cards">
+    <div class="dlcard"><div class="dlci">🧩</div><div><div class="dlcv">Chrome Extension · v1.0</div><div class="dlcn">Chrome / Edge</div></div></div>
+    <div class="dlcard"><div class="dlci">🦊</div><div><div class="dlcv">Firefox Add-on · Coming soon</div><div class="dlcn">Firefox</div></div></div>
+    <div class="dlcard"><div class="dlci">🔬</div><div><div class="dlcv">100% Local · Zero telemetry</div><div class="dlcn">Privacy-First</div></div></div>
+  </div>
+  <a href="cognitiveshift-extension.zip" download="CognitiveShift-v1.0.zip" class="btn-dl" id="main-dl-btn">
+    <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8 1v9M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Download CognitiveShift v1.0
+  </a>
+  <div class="dl-note">Unzip · Chrome → chrome://extensions → Developer Mode → Load Unpacked · Free · No account required</div>
+
+  <!-- Install steps -->
+  <div class="install-steps">
+    <div class="istep"><div class="istep-num">01 — DOWNLOAD</div><div class="istep-text">Click the button above and save the ZIP file</div></div>
+    <div class="istep"><div class="istep-num">02 — UNZIP</div><div class="istep-text">Extract the folder anywhere on your computer</div></div>
+    <div class="istep"><div class="istep-num">03 — CHROME</div><div class="istep-text">Go to chrome://extensions in your browser</div></div>
+    <div class="istep"><div class="istep-num">04 — DEV MODE</div><div class="istep-text">Toggle "Developer mode" ON (top right)</div></div>
+    <div class="istep"><div class="istep-num">05 — LOAD</div><div class="istep-text">Click "Load unpacked" and select the folder</div></div>
+    <div class="istep"><div class="istep-num">06 — DONE</div><div class="istep-text">Visit this page — dashboard goes live!</div></div>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 CognitiveShift</div>
+  <div>Built for ADHD · Post-Concussion · Chronic Fatigue</div>
+  <div>Open Source · MIT License</div>
+</footer>
+
+
+<!-- THREE.JS BRAIN (unchanged from original) -->
+<script type="importmap">
+{
+  "imports": {
+    "three":         "https://unpkg.com/three@0.163.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader }      from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls }   from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+const container = document.getElementById('brain-container');
+const renderer = new THREE.WebGLRenderer({ antialias:true, stencil:true, alpha:false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+container.appendChild(renderer.domElement);
+function resize() { const W=container.clientWidth,H=container.clientHeight; renderer.setSize(W,H,false); camera.aspect=W/H; camera.updateProjectionMatrix(); }
+const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x000510,0.04);
+const camera=new THREE.PerspectiveCamera(52,1,0.1,1000); camera.position.set(0,0,5);
+const pmrem=new THREE.PMREMGenerator(renderer);
+const roomEnv=new RoomEnvironment();
+const envTex=pmrem.fromScene(roomEnv,0.04).texture;
+scene.environment=envTex; scene.background=new THREE.Color(0x000510);
+pmrem.dispose(); roomEnv.dispose();
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=0.06; controls.rotateSpeed=0.7;
+controls.enableZoom=false; controls.enablePan=false; controls.autoRotate=true; controls.autoRotateSpeed=0.5;
+scene.add(new THREE.AmbientLight(0x050a14,1.0));
+const cyanLight=new THREE.PointLight(0x00e5ff,8,12); cyanLight.position.set(3,3,4);
+const magentaLight=new THREE.PointLight(0xaa00ff,6,12); magentaLight.position.set(-4,1,2);
+const tealLight=new THREE.PointLight(0x00ffaa,4,10); tealLight.position.set(0,-4,-4);
+const topLight=new THREE.DirectionalLight(0xffffff,1.5); topLight.position.set(0,8,2);
+scene.add(cyanLight,magentaLight,tealLight,topLight);
+const movingLights=[cyanLight,magentaLight,tealLight];
+const glassMaterial=new THREE.MeshPhysicalMaterial({color:new THREE.Color(0x020d1a),emissive:new THREE.Color(0x003344),emissiveIntensity:0.4,transmission:0.75,transparent:true,roughness:0.0,metalness:0.05,ior:1.8,thickness:1.2,clearcoat:1.0,clearcoatRoughness:0.0,iridescence:1.0,iridescenceIOR:1.3,iridescenceThicknessRange:[200,1000],envMapIntensity:3.0,side:THREE.DoubleSide,depthWrite:false,stencilWrite:true,stencilRef:1,stencilFunc:THREE.AlwaysStencilFunc,stencilZPass:THREE.ReplaceStencilOp});
+window.liquidVolumeMaterial=new THREE.MeshStandardMaterial({color:new THREE.Color(0x00ffff),emissive:new THREE.Color(0x0055aa),emissiveIntensity:1.5,transparent:true,opacity:0.85,roughness:0.1,side:THREE.DoubleSide,depthWrite:false,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+window.liquidVolumeMaterial.onBeforeCompile=(shader)=>{shader.uniforms.uTime={value:0};shader.uniforms.uWaterLevel={value:0};shader.uniforms.uWaveSpeed={value:1.0};shader.uniforms.uWaveAmplitude={value:0.02};shader.uniforms.uSloshX={value:0};shader.uniforms.uSloshZ={value:0};window.liquidShader=shader;shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vWorldPos;').replace('#include <worldpos_vertex>','#include <worldpos_vertex>\nvWorldPos=(modelMatrix*vec4(transformed,1.0)).xyz;');shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec3 vWorldPos;\nuniform float uTime;\nuniform float uWaterLevel;\nuniform float uWaveSpeed;\nuniform float uWaveAmplitude;\nuniform float uSloshX;\nuniform float uSloshZ;').replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nfloat surfaceY=uWaterLevel;\nsurfaceY+=vWorldPos.x*sin(uSloshZ)-vWorldPos.z*sin(uSloshX);\nfloat lx=vWorldPos.x;\nfloat ly=vWorldPos.z;\nfloat ripple=sin(lx*4.0+uTime*uWaveSpeed)*uWaveAmplitude+sin(ly*3.5+uTime*uWaveSpeed*0.8)*uWaveAmplitude*0.8+sin((lx+ly)*2.5+uTime*uWaveSpeed*1.3)*uWaveAmplitude*0.5;\nsurfaceY+=ripple;\nif(vWorldPos.y>surfaceY)discard;');};
+const waterGeometry=new THREE.PlaneGeometry(1.8,1.8,40,40);
+const waterMaterial=new THREE.MeshPhysicalMaterial({color:new THREE.Color(0x00ffff),emissive:new THREE.Color(0x0055aa),emissiveIntensity:1.2,transmission:0.5,transparent:true,opacity:0.9,roughness:0.05,metalness:0.1,ior:1.33,thickness:0.3,side:THREE.DoubleSide,depthWrite:false,stencilWrite:true,stencilRef:1,stencilFunc:THREE.EqualStencilFunc});
+const water=new THREE.Mesh(waterGeometry,waterMaterial); water.rotation.x=-Math.PI/2; water.position.y=-0.4; water.renderOrder=2; scene.add(water);
+const STATES={calm:{level:-0.4,speed:1.0,amplitude:0.02,color:0x00ffff,emissive:0x0055aa},medium:{level:0.1,speed:2.8,amplitude:0.05,color:0x9d00ff,emissive:0x3a0088},stress:{level:0.6,speed:6.0,amplitude:0.09,color:0xff0055,emissive:0x660022}};
+let waterLevel=-0.4,waveSpeed=1.0,waveAmplitude=0.02,tWL=-0.4,tWS=1.0,tWA=0.02;
+const tColor=new THREE.Color(0x00ffff),tEmissive=new THREE.Color(0x0055aa);
+let sloshX=0,sloshZ=0,sloshVX=0,sloshVZ=0;
+function _applyState(s){const diff=s.level-waterLevel,ang=Math.random()*Math.PI*2;sloshVX+=Math.cos(ang)*diff*0.4;sloshVZ+=Math.sin(ang)*diff*0.4;tWL=s.level;tWS=s.speed;tWA=s.amplitude;tColor.setHex(s.color);tEmissive.setHex(s.emissive);}
+window.setBrainLevel=function(val){val=Math.max(0,Math.min(100,val));let sA,sB,f;if(val<=50){sA=STATES.calm;sB=STATES.medium;f=val/50;}else{sA=STATES.medium;sB=STATES.stress;f=(val-50)/50;}const nL=sA.level+(sB.level-sA.level)*f,nS=sA.speed+(sB.speed-sA.speed)*f,nA=sA.amplitude+(sB.amplitude-sA.amplitude)*f;if(Math.abs(nL-tWL)>0.02){const ang=Math.random()*Math.PI*2;sloshVX+=Math.cos(ang)*(nL-tWL)*0.4;sloshVZ+=Math.sin(ang)*(nL-tWL)*0.4;}tWL=nL;tWS=nS;tWA=nA;tColor.copy(new THREE.Color(sA.color)).lerp(new THREE.Color(sB.color),f);tEmissive.copy(new THREE.Color(sA.emissive)).lerp(new THREE.Color(sB.emissive),f);const slider=document.getElementById('stress-slider'),spVal=document.getElementById('sp-val');if(slider)slider.value=Math.round(val);if(spVal){spVal.textContent=Math.round(val)+'%';spVal.style.color='#'+tColor.getHexString();}};
+window.setBrainState=function(name){_applyState(STATES[name]);['calm','medium','stress'].forEach(n=>{const b=document.getElementById('sb-'+n);if(b)b.className='sbtn'+(n===name?' '+n+'-active':'');});const lvl={calm:0,medium:50,stress:100}[name],slider=document.getElementById('stress-slider'),spVal=document.getElementById('sp-val');if(slider)slider.value=lvl;if(spVal){spVal.textContent=lvl+'%';spVal.style.color='#'+tColor.getHexString();}};
+function createProceduralBrain() {
+  const group = new THREE.Group();
+  function buildCortexGeometry(radius, detail, scaleX, scaleY, scaleZ, isCerebellum = false) {
+    const geo = new THREE.SphereGeometry(radius, detail, detail);
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const len = Math.sqrt(x*x + y*y + z*z);
+      const nx = x/len, ny = y/len, nz = z/len;
+      let displacement = 0;
+      if (!isCerebellum) {
+        const g1 = Math.sin(nx * 14.0 + ny * 12.0) * Math.cos(nz * 14.0);
+        const g2 = Math.sin(ny * 22.0 + nz * 18.0) * 0.5;
+        const g3 = Math.cos(nx * 28.0 + nz * 24.0) * 0.25;
+        const mainSulcus = Math.sin(ny * 6.0) * 0.1;
+        displacement = (g1 + g2 + g3 + mainSulcus) * 0.09;
+      } else {
+        displacement = Math.sin(ny * 40.0) * 0.04;
+      }
+      const r = len + displacement;
+      pos.setXYZ(i, nx * r * scaleX, ny * r * scaleY, nz * r * scaleZ);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }
+
+  // Left & Right Hemispheres
+  const leftGeo = buildCortexGeometry(0.75, 48, 0.85, 0.95, 1.2, false);
+  const leftMesh = new THREE.Mesh(leftGeo, glassMaterial); leftMesh.position.set(-0.42, 0.15, 0); leftMesh.renderOrder = 1;
+  const leftLv = new THREE.Mesh(leftGeo, window.liquidVolumeMaterial); leftLv.position.copy(leftMesh.position); leftLv.renderOrder = 0;
+  group.add(leftMesh, leftLv);
+
+  const rightGeo = buildCortexGeometry(0.75, 48, 0.85, 0.95, 1.2, false);
+  const rightMesh = new THREE.Mesh(rightGeo, glassMaterial); rightMesh.position.set(0.42, 0.15, 0); rightMesh.renderOrder = 1;
+  const rightLv = new THREE.Mesh(rightGeo, window.liquidVolumeMaterial); rightLv.position.copy(rightMesh.position); rightLv.renderOrder = 0;
+  group.add(rightMesh, rightLv);
+
+  // Cerebellum
+  const cerLeftGeo = buildCortexGeometry(0.4, 32, 0.9, 0.8, 0.9, true);
+  const cerLeftMesh = new THREE.Mesh(cerLeftGeo, glassMaterial); cerLeftMesh.position.set(-0.35, -0.45, -0.45); cerLeftMesh.renderOrder = 1;
+  const cerLeftLv = new THREE.Mesh(cerLeftGeo, window.liquidVolumeMaterial); cerLeftLv.position.copy(cerLeftMesh.position); cerLeftLv.renderOrder = 0;
+  group.add(cerLeftMesh, cerLeftLv);
+
+  const cerRightGeo = buildCortexGeometry(0.4, 32, 0.9, 0.8, 0.9, true);
+  const cerRightMesh = new THREE.Mesh(cerRightGeo, glassMaterial); cerRightMesh.position.set(0.35, -0.45, -0.45); cerRightMesh.renderOrder = 1;
+  const cerRightLv = new THREE.Mesh(cerRightGeo, window.liquidVolumeMaterial); cerRightLv.position.copy(cerRightMesh.position); cerRightLv.renderOrder = 0;
+  group.add(cerRightMesh, cerRightLv);
+
+  // Brain Stem
+  const stemGeo = new THREE.CylinderGeometry(0.18, 0.12, 0.7, 24);
+  const stemMesh = new THREE.Mesh(stemGeo, glassMaterial); stemMesh.position.set(0, -0.65, -0.2); stemMesh.renderOrder = 1;
+  const stemLv = new THREE.Mesh(stemGeo, window.liquidVolumeMaterial); stemLv.position.copy(stemMesh.position); stemLv.renderOrder = 0;
+  group.add(stemMesh, stemLv);
+
+  return group;
+}
+
+function showBrainUI() {
+  const lo = document.getElementById('brain-loading');
+  if (lo) {
+    lo.classList.add('hidden');
+    setTimeout(() => { lo.style.display = 'none'; }, 1000);
+  }
+  const ctrl = document.getElementById('brain-controls');
+  if (ctrl) ctrl.classList.add('visible');
+  const sld = document.getElementById('brain-slider-panel');
+  if (sld) sld.classList.add('visible');
+}
+
+const loader = new GLTFLoader(); let brain = null;
+
+loader.load('./brain.glb', (gltf) => {
+  brain = gltf.scene;
+  const box = new THREE.Box3().setFromObject(brain), center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()), sc = 2.2 / Math.max(size.x, size.y, size.z);
+  brain.scale.setScalar(sc);
+  brain.position.set(-center.x * sc, -center.y * sc, -center.z * sc);
+  const meshes = [];
+  brain.traverse(c => { if (c.isMesh) meshes.push(c); });
+  meshes.forEach(child => {
+    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+    else child.material.dispose();
+    child.material = glassMaterial;
+    child.renderOrder = 1;
+    child.updateMatrix();
+    const lv = new THREE.Mesh(child.geometry, window.liquidVolumeMaterial);
+    lv.renderOrder = 0;
+    lv.matrixAutoUpdate = false;
+    lv.matrix.copy(child.matrix);
+    if (child.parent) child.parent.add(lv);
+  });
+  scene.add(brain);
+  camera.position.set(0, 0, 4);
+  controls.target.set(0, 0, 0);
+  controls.update();
+  showBrainUI();
+}, (xhr) => {
+  if (xhr.total > 0) document.getElementById('bl-fill').style.width = ((xhr.loaded / xhr.total) * 100) + '%';
+}, (err) => {
+  console.warn('brain.glb load failed or file:// CORS restricted. Loading procedural 3D brain model fallback:', err);
+  brain = createProceduralBrain();
+  scene.add(brain);
+  camera.position.set(0, 0, 4);
+  controls.target.set(0, 0, 0);
+  controls.update();
+  showBrainUI();
+});
+const clock=new THREE.Clock();
+(function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();if(brain)brain.rotation.y+=0.002;movingLights[0].position.set(Math.sin(t*.4)*4,2,Math.cos(t*.4)*4);movingLights[1].position.set(Math.sin(t*.27+2)*5,Math.cos(t*.18)*3,2);movingLights[2].position.set(0,Math.cos(t*.33+4)*-3,Math.sin(t*.33+4)*4);waterLevel+=(tWL-waterLevel)*.05;waveSpeed+=(tWS-waveSpeed)*.05;waveAmplitude+=(tWA-waveAmplitude)*.05;waterMaterial.color.lerp(tColor,.02);waterMaterial.emissive.lerp(tEmissive,.02);if(window.liquidVolumeMaterial){window.liquidVolumeMaterial.color.copy(waterMaterial.color);window.liquidVolumeMaterial.emissive.copy(waterMaterial.emissive);}const pos=waterGeometry.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i);pos.setZ(i,Math.sin(x*4.0+t*waveSpeed)*waveAmplitude+Math.sin(y*3.5+t*waveSpeed*0.8)*waveAmplitude*0.8+Math.sin((x+y)*2.5+t*waveSpeed*1.3)*waveAmplitude*0.5);}pos.needsUpdate=true;waterGeometry.computeVertexNormals();sloshVX+=(0-sloshX)*.06;sloshVZ+=(0-sloshZ)*.06;sloshVX*=.90;sloshVZ*=.90;sloshX+=sloshVX;sloshZ+=sloshVZ;water.rotation.set(-Math.PI/2+sloshX,0,sloshZ);water.position.y=waterLevel;if(window.liquidShader){window.liquidShader.uniforms.uTime.value=t;window.liquidShader.uniforms.uWaterLevel.value=waterLevel;window.liquidShader.uniforms.uWaveSpeed.value=waveSpeed;window.liquidShader.uniforms.uWaveAmplitude.value=waveAmplitude;window.liquidShader.uniforms.uSloshX.value=sloshX;window.liquidShader.uniforms.uSloshZ.value=sloshZ;}controls.update();resize();renderer.render(scene,camera);})();
+window.addEventListener('resize',resize); resize();
+</script>
+
+
+<!-- CHARTS, CALENDAR, EXTENSION BRIDGE -->
+<script>
+// ════════════════════════════════════════════════════════
+//  EXTENSION DATA BRIDGE
+//  Reads cognishift_live from localStorage (written by
+//  the content script's broadcastToWebsite() function).
+//  Falls back to demo simulation if extension not found.
+// ════════════════════════════════════════════════════════
+const Bridge = {
+  live: null,          // last parsed payload from extension
+  isLive: false,       // true = real extension data flowing
+  lastSeen: 0,
+  sessionData: {},     // { 'YYYY-MM-DD': avgScore } from extension history
+
+  check() {
+    try {
+      const raw = localStorage.getItem('cognishift_live');
+      if (!raw) return false;
+      const d = JSON.parse(raw);
+      if (!d || !d.ts) return false;
+      // Data must be fresh (within 10 seconds)
+      if (Date.now() - d.ts > 10000) return false;
+      this.live = d;
+      this.lastSeen = d.ts;
+      return true;
+    } catch(e) { return false; }
+  },
+
+  // Pull extension's session history from its own localStorage key
+  // (extension writes cognishift_sessions via service worker → not directly readable)
+  // So we accumulate from live pings instead
+  recordDay(score) {
+    const key = new Date().toISOString().slice(0,10);
+    if (!this.sessionData[key]) {
+      this.sessionData[key] = { sum: 0, count: 0 };
+    }
+    this.sessionData[key].sum += score;
+    this.sessionData[key].count++;
+  },
+
+  getDayAvg(dateStr) {
+    const d = this.sessionData[dateStr];
+    if (!d || !d.count) return null;
+    return Math.round(d.sum / d.count);
+  }
+};
+
+// Poll every 2 seconds for extension data
+setInterval(() => {
+  const wasLive = Bridge.isLive;
+  Bridge.isLive = Bridge.check();
+
+  if (Bridge.isLive !== wasLive) {
+    updateExtensionBadge(Bridge.isLive);
+  }
+
+  if (Bridge.isLive && Bridge.live) {
+    Bridge.recordDay(Bridge.live.score);
+    ingestExtensionData(Bridge.live);
+  }
+}, 2000);
+
+// Also listen for storage events from the extension's dispatchEvent
+window.addEventListener('storage', (e) => {
+  if (e.key === 'cognishift_live') {
+    Bridge.isLive = Bridge.check();
+    if (Bridge.isLive && Bridge.live) ingestExtensionData(Bridge.live);
+  }
+});
+
+function updateExtensionBadge(live) {
+  const badge = document.getElementById('ext-badge');
+  const text = document.getElementById('ext-badge-text');
+  const heroSub = document.getElementById('hero-score-sub');
+  const graphTag = document.getElementById('graph-source-tag');
+  const calTag = document.getElementById('cal-source-tag');
+
+  if (live) {
+    badge.classList.add('connected');
+    text.textContent = 'Extension connected — showing your live data';
+    heroSub.textContent = 'Live from your session · CognitiveShift extension';
+    graphTag.textContent = 'LIVE';
+    graphTag.className = 'data-source-tag ds-live';
+    calTag.textContent = 'LIVE';
+    calTag.className = 'data-source-tag ds-live';
+    document.getElementById('waveform-title').textContent = '🟢 Live IKI Waveform — From Extension';
+    // Re-render calendar with real data
+    renderCalendar();
+  } else {
+    badge.classList.remove('connected');
+    text.textContent = 'Extension not detected — showing demo data';
+    heroSub.textContent = 'Demo mode — install extension for live data';
+    graphTag.textContent = 'DEMO';
+    graphTag.className = 'data-source-tag ds-demo';
+    calTag.textContent = 'DEMO';
+    calTag.className = 'data-source-tag ds-demo';
+    document.getElementById('waveform-title').textContent = '🔴 Live IKI Waveform — Demo';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  INGEST EXTENSION DATA → update all UI elements
+// ════════════════════════════════════════════════════════
+let extHistoryBuffer = [];  // full score history from extension
+
+function ingestExtensionData(d) {
+  const s = d.score;
+
+  // Push into stress graph history from extension's own history array
+  if (d.history && d.history.length) {
+    extHistoryBuffer = d.history.slice(); // use extension's full history
+  } else {
+    extHistoryBuffer.push(s);
+    if (extHistoryBuffer.length > 90) extHistoryBuffer.shift();
+  }
+
+  // Update hero score
+  document.getElementById('hero-score').textContent = s;
+
+  // Update gauge, metrics, graph
+  updateDashboard(s, {
+    iki:    d.ikiVariance  || (0.28 + s * 0.006),
+    jitter: d.cursorJitter || (d.jitterScore * 0.4),
+    scroll: d.scrollEntropy|| (d.scrollScore * 0.008),
+    dwell:  d.dwellRatio   || (1.0 + s * 0.02),
+  }, extHistoryBuffer);
+
+  // Drive the brain
+  if (typeof window.setBrainLevel === 'function') window.setBrainLevel(s);
+}
+
+// ════════════════════════════════════════════════════════
+//  SHARED DASHBOARD UPDATE (used by both live + demo)
+// ════════════════════════════════════════════════════════
+function col(s) { return s<40?'#00e5ff':s<70?'#9d00ff':'#ff0055'; }
+
+function updateDashboard(s, metrics, hist) {
+  const c = col(s);
+
+  document.getElementById('hero-score').textContent = s;
+  document.getElementById('gauge-num').textContent = s;
+  document.getElementById('gauge-lbl').textContent = s<40?'Cognitive Load: Low':s<70?'Cognitive Load: Medium':'Cognitive Load: High';
+
+  const ll = document.getElementById('level-label');
+  ll.textContent = (s<40?'● LOW — Score: ':s<70?'● MEDIUM — Score: ':'● HIGH — Score: ') + s;
+  ll.style.color = c;
+
+  document.getElementById('m-iki').textContent    = (metrics.iki).toFixed(2);
+  document.getElementById('m-jitter').textContent = (metrics.jitter).toFixed(2);
+  document.getElementById('m-scroll').textContent = (metrics.scroll).toFixed(2);
+  document.getElementById('m-dwell').textContent  = (metrics.dwell).toFixed(1) + '×';
+  ['m-iki','m-jitter','m-scroll','m-dwell'].forEach(id => document.getElementById(id).style.color = c);
+
+  drawStressGraph(hist);
+  drawGauge(s);
+}
+
+// ════════════════════════════════════════════════════════
+//  WAVEFORM (animated — reflects live signal intensity)
+// ════════════════════════════════════════════════════════
+(function(){
+  const cv=document.getElementById('waveform-canvas'), cx=cv.getContext('2d');
+  let t=0;
+  function rs(){ cv.width=cv.offsetWidth; cv.height=cv.offsetHeight; }
+  rs(); window.addEventListener('resize',rs);
+  function draw(){
+    const W=cv.width, H=cv.height;
+    // Modulate pattern based on live data if available
+    const liveScore = Bridge.isLive && Bridge.live ? Bridge.live.score : 30;
+    const variance = Bridge.isLive && Bridge.live ? (Bridge.live.typingScore / 100) : 0.3;
+
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle='rgba(255,255,255,0.04)'; cx.lineWidth=1;
+    for(let x=0;x<W;x+=40){cx.beginPath();cx.moveTo(x,0);cx.lineTo(x,H);cx.stroke();}
+    for(let y=0;y<H;y+=28){cx.beginPath();cx.moveTo(0,y);cx.lineTo(W,y);cx.stroke();}
+
+    // Neurotypical / low-fatigue baseline
+    cx.beginPath(); cx.strokeStyle='rgba(0,229,255,0.7)'; cx.lineWidth=2;
+    for(let x=0;x<W;x++){
+      const v=110+Math.sin(x*.05+t)*8+Math.sin(x*.11+t*.7)*4;
+      const y=H*.28-(v-80)*.45; x===0?cx.moveTo(x,y):cx.lineTo(x,y);
+    } cx.stroke();
+
+    // ADHD / high-fatigue pattern — lapses scale with live score
+    cx.beginPath(); cx.strokeStyle=Bridge.isLive ? 'rgba(0,229,255,0.9)' : 'rgba(255,0,85,0.75)'; cx.lineWidth=2;
+    for(let x=0;x<W;x++){
+      const spikeThreshold = Bridge.isLive ? (0.62 - variance * 0.4) : 0.62;
+      const spike=Math.sin(x*.033+t*.15)>spikeThreshold?Math.sin(x*.15+t)*(80 + liveScore * 1.2):0;
+      const v=110+Math.sin(x*.08+t*.4)*(20 + liveScore * 0.2)+spike;
+      const y=H*.75-Math.max(0,v-80)*.28; x===0?cx.moveTo(x,y):cx.lineTo(x,y);
+    } cx.stroke();
+
+    cx.font='9px Space Mono,monospace';
+    cx.fillStyle='rgba(0,229,255,0.6)'; cx.fillText('Neurotypical (low variance)',10,18);
+    const lbl2 = Bridge.isLive ? 'Live IKI — your session' : 'ADHD (high variance + lapses)';
+    cx.fillStyle = Bridge.isLive ? 'rgba(0,229,255,0.9)' : 'rgba(255,0,85,0.7)';
+    cx.fillText(lbl2, 10, H-10);
+    t+=0.012; requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ════════════════════════════════════════════════════════
+//  STRESS GRAPH
+// ════════════════════════════════════════════════════════
+let demoHist = [];
+let demoCur = 22;
+for(let i=0;i<90;i++){ demoCur+=(Math.random()-.43)*8; demoCur=Math.max(5,Math.min(95,demoCur)); demoHist.push(demoCur); }
+
+const sgCanvas = document.getElementById('stress-graph-canvas');
+const sgCtx = sgCanvas.getContext('2d');
+
+function drawStressGraph(hist) {
+  const W = sgCanvas.offsetWidth || sgCanvas.clientWidth;
+  const H = 210;
+  sgCanvas.width = W; sgCanvas.height = H;
+  sgCtx.clearRect(0,0,W,H);
+
+  // Zone bands
+  [[H*.35,H*.65,'rgba(0,229,255,0.04)'],[H*.15,H*.20,'rgba(157,0,255,0.04)'],[0,H*.15,'rgba(255,0,85,0.05)']].forEach(([y,h,c])=>{
+    sgCtx.fillStyle=c; sgCtx.fillRect(0,y,W,h);
+  });
+
+  // Threshold lines
+  [40,70].forEach(th=>{
+    const ty=H-(th/100)*H;
+    sgCtx.setLineDash([4,6]); sgCtx.strokeStyle=th===40?'rgba(0,229,255,0.25)':'rgba(255,0,85,0.25)';
+    sgCtx.lineWidth=1; sgCtx.beginPath(); sgCtx.moveTo(0,ty); sgCtx.lineTo(W,ty); sgCtx.stroke(); sgCtx.setLineDash([]);
+    sgCtx.font='9px Space Mono,monospace'; sgCtx.fillStyle=th===40?'rgba(0,229,255,0.5)':'rgba(255,0,85,0.5)';
+    sgCtx.fillText(th===40?'LOW→MED':'MED→HIGH',6,ty-4);
+  });
+
+  if (!hist || hist.length < 2) return;
+
+  // Gradient fill
+  const g=sgCtx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'rgba(255,0,85,0.22)'); g.addColorStop(.4,'rgba(157,0,255,0.12)'); g.addColorStop(1,'rgba(0,229,255,0.04)');
+  sgCtx.beginPath();
+  hist.forEach((s,i)=>{ const x=(i/(hist.length-1))*W,y=H-(s/100)*H; i===0?sgCtx.moveTo(x,y):sgCtx.lineTo(x,y); });
+  sgCtx.lineTo(W,H); sgCtx.lineTo(0,H); sgCtx.closePath(); sgCtx.fillStyle=g; sgCtx.fill();
+
+  // Colored line segments
+  hist.forEach((s,i)=>{
+    if(i===0)return;
+    const x0=((i-1)/(hist.length-1))*W, y0=H-(hist[i-1]/100)*H;
+    const x1=(i/(hist.length-1))*W, y1=H-(s/100)*H;
+    sgCtx.beginPath(); sgCtx.moveTo(x0,y0); sgCtx.lineTo(x1,y1);
+    sgCtx.strokeStyle=col(s); sgCtx.lineWidth=2.5; sgCtx.stroke();
+  });
+
+  // Current dot
+  const last=hist[hist.length-1];
+  const lx=W-2, ly=H-(last/100)*H;
+  sgCtx.beginPath(); sgCtx.arc(lx,ly,5,0,Math.PI*2);
+  sgCtx.fillStyle=col(last); sgCtx.fill();
+  sgCtx.strokeStyle='#000510'; sgCtx.lineWidth=2; sgCtx.stroke();
+}
+
+// Resize handler for stress graph
+function resizeStressGraph() {
+  const hist = Bridge.isLive ? extHistoryBuffer : demoHist;
+  drawStressGraph(hist);
+}
+window.addEventListener('resize', resizeStressGraph);
+
+// Initial draw
+drawStressGraph(demoHist);
+
+// Demo tick — only runs when extension not connected
+function demoTick() {
+  if (Bridge.isLive) return; // skip when extension is live
+  const last = demoHist[demoHist.length-1];
+  let next = last + (Math.random()-.44)*10;
+  next = Math.max(5, Math.min(95, next));
+  demoHist.push(next);
+  if (demoHist.length > 90) demoHist.shift();
+  const s = Math.round(next);
+  updateDashboard(s, {
+    iki:    0.28 + s * 0.006 + Math.random() * 0.05,
+    jitter: (s<40?0.09:s<70?0.22:0.37) + Math.random() * 0.04,
+    scroll: 0.10 + s * 0.004 + Math.random() * 0.03,
+    dwell:  1.0 + s * 0.02 + Math.random() * 0.1,
+  }, demoHist);
+  if (typeof window.setBrainLevel === 'function') window.setBrainLevel(s);
+}
+setInterval(demoTick, 2000);
+
+// ════════════════════════════════════════════════════════
+//  GAUGE
+// ════════════════════════════════════════════════════════
+function drawGauge(score){
+  const cv=document.getElementById('gauge-canvas'), cx=cv.getContext('2d');
+  const cx2=85,cy=85,r=68,lw=11;
+  cx.clearRect(0,0,170,170);
+  cx.beginPath(); cx.arc(cx2,cy,r,Math.PI*.75,Math.PI*2.25);
+  cx.strokeStyle='rgba(255,255,255,.06)'; cx.lineWidth=lw; cx.lineCap='round'; cx.stroke();
+  const sA=Math.PI*.75, eA=sA+(score/100)*Math.PI*1.5;
+  const g=cx.createLinearGradient(cx2-r,cy,cx2+r,cy);
+  g.addColorStop(0,'#00e5ff'); g.addColorStop(.5,'#9d00ff'); g.addColorStop(1,'#ff0055');
+  cx.beginPath(); cx.arc(cx2,cy,r,sA,eA); cx.strokeStyle=g; cx.lineWidth=lw; cx.lineCap='round'; cx.stroke();
+  const tc=score<40?'#00e5ff':score<70?'#9d00ff':'#ff0055';
+  const tx=cx2+Math.cos(eA)*r, ty=cy+Math.sin(eA)*r;
+  cx.beginPath(); cx.arc(tx,ty,4.5,0,Math.PI*2);
+  cx.fillStyle=tc; cx.shadowColor=tc; cx.shadowBlur=14; cx.fill(); cx.shadowBlur=0;
+  [40,70].forEach(th=>{
+    const a=sA+(th/100)*Math.PI*1.5;
+    cx.beginPath();
+    cx.moveTo(cx2+Math.cos(a)*(r-9),cy+Math.sin(a)*(r-9));
+    cx.lineTo(cx2+Math.cos(a)*(r+2),cy+Math.sin(a)*(r+2));
+    cx.strokeStyle=th===40?'rgba(0,229,255,.5)':'rgba(255,0,85,.5)'; cx.lineWidth=2; cx.lineCap='butt'; cx.stroke();
+  });
+}
+drawGauge(22);
+
+// ════════════════════════════════════════════════════════
+//  CALENDAR — merges real extension data with demo fill
+// ════════════════════════════════════════════════════════
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let vy=2026, vm=3;
+
+function sr(seed){ const x=Math.sin(seed+1)*10000; return x-Math.floor(x); }
+function genDemo(y,m){
+  const days=new Date(y,m+1,0).getDate(), today=new Date(), data={};
+  for(let d=1;d<=days;d++){
+    if(new Date(y,m,d)>today) continue;
+    data[d]=Math.round(sr(y*10000+m*100+d)*90+5);
+  }
+  return data;
+}
+
+function renderCalendar(){
+  // Start with demo data as background
+  const demoData = genDemo(vy,vm);
+
+  // Overlay real extension data for today (if connected)
+  if (Bridge.isLive) {
+    const today = new Date();
+    if (today.getFullYear()===vy && today.getMonth()===vm) {
+      const d = today.getDate();
+      const dayAvg = Bridge.getDayAvg(today.toISOString().slice(0,10));
+      if (dayAvg !== null) demoData[d] = dayAvg;
+    }
+  }
+
+  const data = demoData;
+  const fd = new Date(vy,vm,1).getDay();
+  const td = new Date(vy,vm+1,0).getDate();
+  const today = new Date();
+
+  document.getElementById('cal-month').textContent = MONTHS[vm]+' '+vy;
+  const vals = Object.values(data);
+  const avg = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+  const el = document.getElementById('month-avg');
+  el.textContent = avg+'/100';
+  el.style.color = avg<40?'#00e5ff':avg<70?'#9d00ff':'#ff0055';
+
+  const cont = document.getElementById('cal-days');
+  cont.innerHTML='';
+
+  for(let i=0;i<fd;i++){ const b=document.createElement('div'); b.className='cday dn'; cont.appendChild(b); }
+
+  for(let d=1;d<=td;d++){
+    const sc = data[d];
+    const isToday = today.getFullYear()===vy && today.getMonth()===vm && today.getDate()===d;
+    const isLiveToday = isToday && Bridge.isLive;
+    const div = document.createElement('div');
+    let cls = 'cday ' + (!sc?'dn':sc<40?'dl':sc<70?'dm':'dh');
+    if (isLiveToday) cls += ' dtoday-live';
+    else if (isToday) cls += ' dt';
+    div.className = cls;
+    const tc = !sc?'':sc<40?'#00e5ff':sc<70?'#9d00ff':'#ff0055';
+    const liveMarker = isLiveToday ? ' 🟢' : '';
+    div.innerHTML=`<div class="dnum">${d}${liveMarker}</div>${sc?`<div class="dscore">${sc}</div><div class="ctt"><div class="ctt-d">${MONTHS[vm]} ${d}, ${vy}${isLiveToday?' · LIVE':''}</div><div class="ctt-s" style="color:${tc}">${sc}<small style="font-size:9px;opacity:.6"> / 100</small></div></div>`:''}`;
+    cont.appendChild(div);
+  }
+}
+
+document.getElementById('prev-month').onclick=()=>{ vm--; if(vm<0){vm=11;vy--;} renderCalendar(); };
+document.getElementById('next-month').onclick=()=>{
+  const t=new Date();
+  if(vy>t.getFullYear()||(vy===t.getFullYear()&&vm>=t.getMonth()))return;
+  vm++; if(vm>11){vm=0;vy++;} renderCalendar();
+};
+renderCalendar();
+
+// Re-render calendar every 30s to pick up live session accumulation
+setInterval(renderCalendar, 30000);
+
+// Initial graph resize
+setTimeout(resizeStressGraph, 100);
+</script>
+
+</body>
+</html>

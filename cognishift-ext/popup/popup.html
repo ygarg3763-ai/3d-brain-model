@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CogniAdapt</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a12;
+  --surface: #12121e;
+  --surface2: #191926;
+  --surface3: #20202e;
+  --border: rgba(255,255,255,0.07);
+  --text: #e4e4f4;
+  --muted: #5a5a7a;
+  --green: #5af0a0;
+  --yellow: #f0d060;
+  --orange: #f09050;
+  --red: #f06060;
+  --blue: #60b0f0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  /* Width set by JS based on expanded/collapsed state */
+  width: 340px;
+  transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ── COLLAPSED PILL STATE ── */
+body.collapsed {
+  width: 200px !important;
+}
+
+body.collapsed .full-content { display: none !important; }
+body.collapsed .pill-content { display: flex !important; }
+
+.pill-content {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  gap: 10px;
+}
+
+.pill-logo { display: flex; align-items: center; gap: 7px; }
+.pill-mark {
+  width: 22px; height: 22px;
+  background: linear-gradient(135deg, #5af0a0, #00b870);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: #050e0a; font-weight: 700;
+}
+.pill-name { font-size: 11px; font-weight: 700; letter-spacing: -0.01em; }
+
+.pill-score-wrap { display: flex; align-items: center; gap: 6px; }
+.pill-score {
+  font-family: 'DM Mono', monospace;
+  font-size: 18px; font-weight: 500; line-height: 1;
+  color: var(--green); transition: color 0.5s;
+}
+.pill-expand-btn {
+  background: none; border: none; color: var(--muted);
+  font-size: 14px; cursor: pointer; padding: 0;
+  font-family: inherit; transition: color 0.2s;
+}
+.pill-expand-btn:hover { color: var(--text); }
+
+/* ── HEADER ── */
+.header {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { display: flex; align-items: center; gap: 9px; }
+.logo-mark {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, #5af0a0, #00b870);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #050e0a;
+}
+.logo-name { font-size: 14px; font-weight: 800; letter-spacing: -0.02em; }
+.logo-sub { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--muted); margin-top: 1px; }
+
+.header-btns { display: flex; align-items: center; gap: 8px; }
+
+.shrink-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 4px 9px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.05em;
+}
+.shrink-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.12); }
+
+.toggle { position: relative; width: 34px; height: 19px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--surface3); border: 1px solid var(--border);
+  border-radius: 19px; cursor: pointer; transition: 0.3s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  width: 13px; height: 13px; border-radius: 50%;
+  left: 2px; top: 2px; background: var(--muted); transition: 0.3s;
+}
+.toggle input:checked + .toggle-slider { background: rgba(90,240,160,0.14); border-color: rgba(90,240,160,0.3); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(15px); background: var(--green); }
+
+/* ── LIVE SCORE SECTION ── */
+.score-section {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.score-row { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.score-big {
+  font-family: 'DM Mono', monospace;
+  font-size: 46px; font-weight: 500; line-height: 1;
+  color: var(--green); transition: color 0.5s;
+  min-width: 60px;
+}
+.score-right { flex: 1; }
+.bar-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; margin-bottom: 7px; }
+.bar-fill { height: 100%; border-radius: 4px; background: var(--green); width: 0%; transition: width 1.2s cubic-bezier(0.16,1,0.3,1), background 0.5s; }
+.level-pill {
+  font-size: 8.5px; font-family: 'DM Mono', monospace; padding: 3px 8px;
+  border-radius: 20px; border: 1px solid rgba(90,240,160,0.2);
+  background: rgba(90,240,160,0.08); color: var(--green);
+  letter-spacing: 0.1em; display: inline-block; transition: all 0.5s;
+}
+canvas#sparkline { width: 100%; height: 34px; display: block; border-radius: 4px; }
+.cal-note {
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  color: var(--muted); text-align: center; padding: 3px 0; margin-top: 6px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.pulse-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green); animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+/* ── SIGNALS ── */
+.signals-section { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.section-label {
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+}
+.signal-item { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.signal-item:last-child { margin-bottom: 0; }
+.sig-name { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--muted); width: 48px; flex-shrink: 0; }
+.sig-track { flex: 1; height: 3px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+.sig-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width 0.9s, background 0.5s; }
+.sig-val { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text); width: 28px; text-align: right; }
+
+/* ── TABS ── */
+.tab-bar {
+  display: flex; border-bottom: 1px solid var(--border);
+}
+.tab {
+  flex: 1; padding: 9px 4px; font-size: 10px; font-weight: 600;
+  text-align: center; cursor: pointer; color: var(--muted);
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+.tab-content { display: none; padding: 12px 16px; }
+.tab-content.active { display: block; }
+
+/* ── SETTINGS ROWS ── */
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-info .s-name { font-size: 12px; font-weight: 500; }
+.setting-info .s-desc { font-size: 9px; color: var(--muted); margin-top: 1px; font-family: 'DM Mono', monospace; }
+
+/* ── ADHD SECTION ── */
+.adhd-section-title {
+  font-family: 'DM Mono', monospace; font-size: 8px;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--blue); margin: 10px 0 6px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── SLIDER ── */
+.slider-group { padding: 6px 0; }
+.slider-row { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+input[type=range] {
+  flex: 1; height: 3px; background: var(--surface3);
+  border-radius: 3px; outline: none; -webkit-appearance: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--green); cursor: pointer;
+}
+.slider-val { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--green); min-width: 24px; text-align: right; }
+
+/* ── FOOTER ── */
+.popup-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 7px;
+}
+.btn-dash {
+  flex: 1; padding: 8px;
+  background: linear-gradient(135deg, rgba(90,240,160,0.14), rgba(90,240,160,0.07));
+  border: 1px solid rgba(90,240,160,0.2); color: var(--green);
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+  border-radius: 9px; cursor: pointer; transition: all 0.2s;
+}
+.btn-dash:hover { background: rgba(90,240,160,0.2); }
+.btn-sec {
+  padding: 8px 12px; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--muted); font-family: 'Syne', sans-serif; font-size: 11px;
+  border-radius: 9px; cursor: pointer; transition: all 0.2s;
+}
+.btn-sec:hover { color: var(--text); }
+
+/* ── STATS MINI ── */
+.stats-mini { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); }
+.stat-cell { background: var(--bg); padding: 9px 10px; text-align: center; }
+.stat-v { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--text); display: block; }
+.stat-l { font-size: 8.5px; color: var(--muted); display: block; margin-top: 2px; }
+
+/* ── LEVEL MANUAL OVERRIDE (ADHD: quick manual control) ── */
+.level-override {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+  margin-top: 6px;
+}
+.lvl-btn {
+  padding: 6px 4px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--muted); font-family: 'DM Mono', monospace;
+  font-size: 9px; cursor: pointer; text-align: center; transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+.lvl-btn:hover { color: var(--text); }
+.lvl-btn.active-lvl { font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ── COLLAPSED PILL (shown when shrunk) ── -->
+<div class="pill-content" id="pillContent">
+  <div class="pill-logo">
+    <div class="pill-mark">◈</div>
+    <span class="pill-name">CogniAdapt</span>
+  </div>
+  <div class="pill-score-wrap">
+    <span class="pill-score" id="pillScore">–</span>
+    <button class="pill-expand-btn" id="expandBtn" title="Expand">⊕</button>
+  </div>
+</div>
+
+<!-- ── FULL CONTENT ── -->
+<div class="full-content" id="fullContent">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-mark">◈</div>
+      <div>
+        <div class="logo-name">CogniAdapt</div>
+        <div class="logo-sub">Cognitive Ergonomics Engine v2.0</div>
+      </div>
+    </div>
+    <div class="header-btns">
+      <button class="shrink-btn" id="shrinkBtn">— Shrink</button>
+      <label class="toggle" title="Master on/off">
+        <input type="checkbox" id="masterToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Live Score -->
+  <div class="score-section">
+    <div class="score-row">
+      <div class="score-big" id="scoreNum">–</div>
+      <div class="score-right">
+        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        <span class="level-pill" id="levelPill">CALIBRATING</span>
+      </div>
+    </div>
+    <canvas id="sparkline" width="300" height="34"></canvas>
+    <div class="cal-note" id="calNote">
+      <div class="pulse-dot"></div>
+      <span>Calibrating baseline — type naturally</span>
+    </div>
+  </div>
+
+  <!-- Signals -->
+  <div class="signals-section">
+    <div class="section-label">Live Signals</div>
+    <div class="signal-item">
+      <span class="sig-name">Typing</span>
+      <div class="sig-track"><div class="sig-fill" id="sfTyping" style="width:0%"></div></div>
+      <span class="sig-val" id="svTyping">–</span>
+    </div>
+    <div class="signal-item">
+      <span class="sig-name">Cursor</span>
+      <div class="sig-track"><div class="sig-fill" id="sfJitter" style="width:0%"></div></div>
+      <span class="sig-val" id="svJitter">–</span>
+    </div>
+    <div class="signal-item">
+      <span class="sig-name">Scroll</span>
+      <div class="sig-track"><div class="sig-fill" id="sfScroll" style="width:0%"></div></div>
+      <span class="sig-val" id="svScroll">–</span>
+    </div>
+  </div>
+
+  <!-- Stats mini -->
+  <div class="stats-mini">
+    <div class="stat-cell"><span class="stat-v" id="stSess">–</span><span class="stat-l">Sessions</span></div>
+    <div class="stat-cell"><span class="stat-v" id="stAvg">–</span><span class="stat-l">Avg Load</span></div>
+    <div class="stat-cell"><span class="stat-v" id="stAdapts">–</span><span class="stat-l">Adaptations</span></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <div class="tab active" data-tab="quick">Quick</div>
+    <div class="tab" data-tab="adhd">ADHD</div>
+    <div class="tab" data-tab="general">General</div>
+  </div>
+
+  <!-- Tab: Quick Settings -->
+  <div class="tab-content active" id="tab-quick">
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Adapt UI on fatigue</div><div class="s-desc">Simplify pages automatically</div></div>
+      <label class="toggle"><input type="checkbox" id="tAdaptUI" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Floating HUD on pages</div><div class="s-desc">Show monitor overlay everywhere</div></div>
+      <label class="toggle"><input type="checkbox" id="tHUD" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Level notifications</div><div class="s-desc">Toast when adaptation changes</div></div>
+      <label class="toggle"><input type="checkbox" id="tNotify" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="slider-group">
+      <div class="s-name">Sensitivity</div>
+      <div class="slider-row">
+        <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">Lo</span>
+        <input type="range" id="sensitivitySlider" min="1" max="10" value="7">
+        <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">Hi</span>
+        <span class="slider-val" id="sensVal">7</span>
+      </div>
+    </div>
+
+    <!-- Manual level override — key for ADHD users who know their state -->
+    <div style="margin-top:10px">
+      <div class="section-label" style="margin-bottom:6px">Manual Override</div>
+      <div class="level-override">
+        <button class="lvl-btn" data-level="0" style="border-color:rgba(90,240,160,0.3);color:#5af0a0">Normal</button>
+        <button class="lvl-btn" data-level="1" style="border-color:rgba(240,208,96,0.3);color:#f0d060">Mild</button>
+        <button class="lvl-btn" data-level="2" style="border-color:rgba(240,144,80,0.3);color:#f09050">High</button>
+        <button class="lvl-btn" data-level="3" style="border-color:rgba(240,96,96,0.3);color:#f06060">Focus</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: ADHD-specific settings -->
+  <div class="tab-content" id="tab-adhd">
+    <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--blue);margin-bottom:10px;line-height:1.5;padding:8px;background:rgba(96,176,240,0.06);border-radius:8px;border:1px solid rgba(96,176,240,0.12)">
+      These features are tuned for ADHD, post-concussion, and chronic fatigue — they activate gradually without requiring any input.
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Reading guide highlight</div><div class="s-desc">Gently tints hovered paragraphs</div></div>
+      <label class="toggle"><input type="checkbox" id="tReadGuide" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Focus ring on elements</div><div class="s-desc">Visible green ring on focused items</div></div>
+      <label class="toggle"><input type="checkbox" id="tFocusRing" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Kill animations at level 2+</div><div class="s-desc">Stops GIFs, transitions, distractions</div></div>
+      <label class="toggle"><input type="checkbox" id="tReduceMotion" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">High contrast at level 3</div><div class="s-desc">Boosts text contrast in focus mode</div></div>
+      <label class="toggle"><input type="checkbox" id="tHighContrast"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Break reminders</div><div class="s-desc">Banner nudge every N minutes</div></div>
+      <label class="toggle"><input type="checkbox" id="tBreaks" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="slider-group">
+      <div class="s-name">Break every</div>
+      <div class="slider-row">
+        <input type="range" id="breakSlider" min="10" max="60" value="25" step="5">
+        <span class="slider-val" id="breakVal">25</span>
+        <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">min</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: General -->
+  <div class="tab-content" id="tab-general">
+    <div class="setting-row">
+      <div class="setting-info"><div class="s-name">Track behavior</div><div class="s-desc">Collect typing/mouse/scroll signals</div></div>
+      <label class="toggle"><input type="checkbox" id="tTracking" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="slider-group">
+      <div class="s-name">Data retention</div>
+      <div class="slider-row">
+        <input type="range" id="retentionSlider" min="1" max="14" value="7">
+        <span class="slider-val" id="retVal">7</span>
+        <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace">days</span>
+      </div>
+    </div>
+    <div class="setting-row" style="margin-top:8px">
+      <div class="setting-info"><div class="s-name">Clear session data</div><div class="s-desc">Deletes all stored history</div></div>
+      <button id="clearBtn" style="padding:5px 10px;border-radius:6px;border:1px solid rgba(240,96,96,0.3);background:rgba(240,96,96,0.07);color:var(--red);font-size:10px;cursor:pointer;font-family:'Syne',sans-serif">Clear</button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="popup-footer">
+    <button class="btn-dash" id="dashBtn">Open Full Dashboard ↗</button>
+    <button class="btn-sec" id="resetBtn" title="Reset settings to defaults">↺</button>
+  </div>
+
+</div><!-- /full-content -->
+
+<script>
+// ════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════
+function scoreColor(s) {
+  if (s < 35) return '#5af0a0';
+  if (s < 60) return '#f0d060';
+  if (s < 78) return '#f09050';
+  return '#f06060';
+}
+
+function levelInfo(s) {
+  if (s < 35) return { label: 'NORMAL', color: '#5af0a0' };
+  if (s < 52) return { label: 'MILD ADAPT', color: '#f0d060' };
+  if (s < 72) return { label: 'HIGH LOAD', color: '#f09050' };
+  return { label: 'FOCUS MODE', color: '#f06060' };
+}
+
+// ════════════════════════════════════════
+//  COLLAPSE / EXPAND
+// ════════════════════════════════════════
+let isCollapsed = false;
+
+function setCollapsed(val) {
+  isCollapsed = val;
+  document.body.classList.toggle('collapsed', val);
+  // Chrome popup needs explicit resize
+  document.body.style.width = val ? '200px' : '340px';
+  document.body.style.minHeight = val ? '46px' : '';
+}
+
+document.getElementById('shrinkBtn').addEventListener('click', () => setCollapsed(true));
+document.getElementById('expandBtn').addEventListener('click', () => setCollapsed(false));
+document.getElementById('pillContent').addEventListener('click', () => setCollapsed(false));
+
+// ════════════════════════════════════════
+//  SPARKLINE
+// ════════════════════════════════════════
+const canvas = document.getElementById('sparkline');
+const ctx = canvas.getContext('2d');
+let sparkData = [];
+
+function drawSparkline(data) {
+  const W = canvas.offsetWidth || 300, H = 34;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+  if (data.length < 2) return;
+  const pts = data.slice(-50);
+  const step = W / (pts.length - 1);
+  const last = pts[pts.length - 1];
+  const col = scoreColor(last);
+
+  // Fill
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, col + '28');
+  grad.addColorStop(1, col + '00');
+  ctx.beginPath();
+  pts.forEach((v, i) => {
+    const x = i * step, y = H - (v / 100) * (H - 3) - 2;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo((pts.length - 1) * step, H);
+  ctx.lineTo(0, H); ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  pts.forEach((v, i) => {
+    const x = i * step, y = H - (v / 100) * (H - 3) - 2;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.lineJoin = 'round'; ctx.stroke();
+
+  // Current dot
+  const lx = (pts.length - 1) * step;
+  const ly = H - (last / 100) * (H - 3) - 2;
+  ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2);
+  ctx.fillStyle = col; ctx.fill();
+}
+
+// ════════════════════════════════════════
+//  LIVE POLL
+// ════════════════════════════════════════
+async function pollTab() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => window.__cogniAdapt?.getState?.() || null
+    });
+    const data = result?.[0]?.result;
+    if (!data) return;
+
+    const s = data.score;
+    const col = scoreColor(s);
+    const info = levelInfo(s);
+
+    // Full view
+    document.getElementById('scoreNum').textContent = s;
+    document.getElementById('scoreNum').style.color = col;
+    document.getElementById('barFill').style.width = s + '%';
+    document.getElementById('barFill').style.background = col;
+    const pill = document.getElementById('levelPill');
+    pill.textContent = info.label;
+    pill.style.color = info.color;
+    pill.style.borderColor = info.color + '30';
+    pill.style.background = info.color + '10';
+
+    // Collapsed pill score
+    document.getElementById('pillScore').textContent = s;
+    document.getElementById('pillScore').style.color = col;
+
+    if (data.calibrated) document.getElementById('calNote').style.display = 'none';
+
+    // Sparkline
+    if (data.history?.length) sparkData = data.history.map(h => h.score);
+    else { sparkData.push(s); if (sparkData.length > 50) sparkData.shift(); }
+    drawSparkline(sparkData);
+
+    // Signals
+    const setSig = (fillId, valId, val, max, suffix = '%') => {
+      const pct = Math.min((val / max) * 100, 100);
+      document.getElementById(fillId).style.width = pct + '%';
+      document.getElementById(fillId).style.background = scoreColor(pct);
+      document.getElementById(valId).textContent = val + suffix;
+    };
+    setSig('sfTyping', 'svTyping', data.typingScore, 100);
+    setSig('sfJitter', 'svJitter', data.jitterScore, 5, '');
+    setSig('sfScroll', 'svScroll', data.scrollScore, 100);
+
+    // Active level buttons
+    document.querySelectorAll('.lvl-btn').forEach(btn => {
+      btn.classList.toggle('active-lvl', parseInt(btn.dataset.level) === data.level);
+    });
+
+  } catch (e) { /* Tab may not have content script yet */ }
+}
+
+async function loadStats() {
+  chrome.runtime.sendMessage({ type: 'GET_HISTORY' }, (sessions) => {
+    if (!sessions?.length) return;
+    document.getElementById('stSess').textContent = sessions.length;
+    const avg = Math.round(sessions.reduce((a, b) => a + (b.avgScore || 0), 0) / sessions.length);
+    document.getElementById('stAvg').textContent = avg || '–';
+    document.getElementById('stAdapts').textContent = sessions.filter(s => (s.level || 0) > 0).length;
+  });
+}
+
+// ════════════════════════════════════════
+//  SETTINGS LOAD / SAVE
+// ════════════════════════════════════════
+function save(patch) {
+  chrome.runtime.sendMessage({ type: 'UPDATE_SETTINGS', data: patch });
+}
+
+function loadSettings() {
+  chrome.runtime.sendMessage({ type: 'GET_SETTINGS' }, (s) => {
+    if (!s) return;
+    document.getElementById('masterToggle').checked = s.enabled;
+    document.getElementById('tAdaptUI').checked = s.adaptUI;
+    document.getElementById('tHUD').checked = s.showFloatingHUD;
+    document.getElementById('tNotify').checked = s.notifyOnLevelChange;
+    document.getElementById('tTracking').checked = s.trackingEnabled;
+    document.getElementById('tBreaks').checked = s.breakReminders;
+    document.getElementById('tReadGuide').checked = s.adhdReadingGuide !== false;
+    document.getElementById('tFocusRing').checked = s.adhdFocusRing !== false;
+    document.getElementById('tReduceMotion').checked = s.adhdReduceMotion !== false;
+    document.getElementById('tHighContrast').checked = !!s.adhdHighContrast;
+    const sens = Math.round((s.sensitivity || 0.7) * 10);
+    document.getElementById('sensitivitySlider').value = sens;
+    document.getElementById('sensVal').textContent = sens;
+    document.getElementById('breakSlider').value = s.breakIntervalMin || 25;
+    document.getElementById('breakVal').textContent = s.breakIntervalMin || 25;
+    document.getElementById('retentionSlider').value = s.dataRetentionDays || 7;
+    document.getElementById('retVal').textContent = s.dataRetentionDays || 7;
+  });
+}
+
+// Bind toggles
+const toggleMap = {
+  'masterToggle': 'enabled', 'tAdaptUI': 'adaptUI', 'tHUD': 'showFloatingHUD',
+  'tNotify': 'notifyOnLevelChange', 'tTracking': 'trackingEnabled', 'tBreaks': 'breakReminders',
+  'tReadGuide': 'adhdReadingGuide', 'tFocusRing': 'adhdFocusRing',
+  'tReduceMotion': 'adhdReduceMotion', 'tHighContrast': 'adhdHighContrast',
+};
+Object.entries(toggleMap).forEach(([id, key]) => {
+  document.getElementById(id)?.addEventListener('change', (e) => save({ [key]: e.target.checked }));
+});
+
+document.getElementById('sensitivitySlider').addEventListener('input', (e) => {
+  document.getElementById('sensVal').textContent = e.target.value;
+  save({ sensitivity: parseInt(e.target.value) / 10 });
+});
+document.getElementById('breakSlider').addEventListener('input', (e) => {
+  document.getElementById('breakVal').textContent = e.target.value;
+  save({ breakIntervalMin: parseInt(e.target.value) });
+});
+document.getElementById('retentionSlider').addEventListener('input', (e) => {
+  document.getElementById('retVal').textContent = e.target.value;
+  save({ dataRetentionDays: parseInt(e.target.value) });
+});
+
+// ════════════════════════════════════════
+//  MANUAL LEVEL OVERRIDE
+// ════════════════════════════════════════
+document.querySelectorAll('.lvl-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const level = parseInt(btn.dataset.level);
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: (l) => window.__cogniAdapt?.setLevel?.(l),
+          args: [level]
+        });
+      }
+    } catch (e) {}
+    document.querySelectorAll('.lvl-btn').forEach(b => b.classList.remove('active-lvl'));
+    btn.classList.add('active-lvl');
+  });
+});
+
+// ════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ════════════════════════════════════════
+//  FOOTER ACTIONS
+// ════════════════════════════════════════
+document.getElementById('dashBtn').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'OPEN_DASHBOARD' });
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'CLEAR_DATA' }).catch(() => {});
+  chrome.storage.local.remove('settings').then(loadSettings);
+});
+document.getElementById('clearBtn').addEventListener('click', () => {
+  chrome.runtime.sendMessage({ type: 'CLEAR_DATA' }).catch(() => {});
+  loadStats();
+});
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+loadSettings();
+loadStats();
+pollTab();
+setInterval(pollTab, 1500);
+</script>
+</body>
+</html>
